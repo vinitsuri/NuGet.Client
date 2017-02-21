@@ -150,6 +150,7 @@ namespace NuGet.Common
                 }
                 catch (Exception ex) when ((i < (MaxTries - 1)) && (ex is UnauthorizedAccessException || ex is IOException))
                 {
+                    Delete(destFileName);
                     Sleep(100);
                 }
             }
