@@ -9,6 +9,7 @@ using Microsoft.VisualStudio.ProjectSystem;
 using MsBuildProject = Microsoft.Build.Evaluation.Project;
 using Task = System.Threading.Tasks.Task;
 using NuGet.PackageManagement.UI;
+using Microsoft.VisualStudio.Shell;
 #if VS14
 using Microsoft.VisualStudio.ProjectSystem.Designers;
 #elif VS15
@@ -52,6 +53,8 @@ namespace NuGet.VisualStudio.Facade.ProjectSystem
 
         private static UnconfiguredProject GetUnconfiguredProject(IVsProject project)
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
             IVsBrowseObjectContext context = project as IVsBrowseObjectContext;
             if (context == null)
             {

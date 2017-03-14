@@ -3,6 +3,7 @@
 
 using System;
 using System.ComponentModel.Composition;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -75,7 +76,7 @@ namespace NuGet.PackageManagement.UI
         }
 
         // Custom awaiter which wraps the awaiter for a task awaiting the semaphore lock.
-        // This awaiter implementation wraps a TaskAwaiter, and this implementation’s 
+        // This awaiter implementation wraps a TaskAwaiter, and this implementation’s
         // IsCompleted, OnCompleted, and GetResult members delegate to the contained TaskAwaiter’s.
         private class SemaphoreLockAwaiter : AsyncLockAwaiter, IAsyncLockAwaitable
         {
@@ -106,6 +107,7 @@ namespace NuGet.PackageManagement.UI
 
             public override bool IsCompleted => _awaiter.IsCompleted;
 
+            [SuppressMessage("Microsoft.VisualStudio.Threading.Analyzers", "VSTHRD002", Justification = "NuGet/Home#4833 Baseline")]
             public override IDisposable GetResult()
             {
                 try
@@ -114,7 +116,7 @@ namespace NuGet.PackageManagement.UI
                 }
                 catch (TaskCanceledException) when (_token.IsCancellationRequested)
                 {
-                    // when token is canceled before WaitAsync is called 
+                    // when token is canceled before WaitAsync is called
                     // GetResult would throw TaskCanceledException.
                     // This clause solves this incosistency.
                     throw new OperationCanceledException();

@@ -210,7 +210,7 @@ namespace NuGet.PackageManagement.UI
             {
                 uiService.BeginOperation();
 
-                var acceptedFormat = await CheckPackageManagementFormat(uiService, token);
+                var acceptedFormat = await CheckPackageManagementFormatAsync(uiService, token);
                 if (!acceptedFormat)
                 {
                     return;
@@ -333,7 +333,7 @@ namespace NuGet.PackageManagement.UI
             }
         }
 
-        private async Task<bool> CheckPackageManagementFormat(INuGetUI uiService, CancellationToken token)
+        private async Task<bool> CheckPackageManagementFormatAsync(INuGetUI uiService, CancellationToken token)
         {
 #if VS14
             // don't show this dialog for VS 2015

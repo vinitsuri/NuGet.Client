@@ -31,6 +31,10 @@ namespace NuGetConsole.Implementation.Console
         "Microsoft.Maintainability",
         "CA1506:AvoidExcessiveClassCoupling",
         Justification = "We don't have resources to refactor this class.")]
+    [SuppressMessage(
+        "Microsoft.VisualStudio.Threading.Analyzers",
+        "VSTHRD010",
+        Justification = "We don't have resources to refactor this class.")]
     internal class WpfConsole : ObjectWithFactory<WpfConsoleService>, IDisposable
     {
         private readonly IPrivateConsoleStatus _consoleStatus;

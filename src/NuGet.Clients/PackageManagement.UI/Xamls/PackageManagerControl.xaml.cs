@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -25,6 +26,7 @@ namespace NuGet.PackageManagement.UI
     /// <summary>
     /// Interaction logic for PackageManagerControl.xaml
     /// </summary>
+    [SuppressMessage("Microsoft.VisualStudio.Threading.Analyzers", "VSTHRD010")]
     public partial class PackageManagerControl : UserControl, IVsWindowSearch
     {
         private readonly bool _initialized;

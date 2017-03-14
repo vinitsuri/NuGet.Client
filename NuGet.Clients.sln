@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26228.4
+VisualStudioVersion = 15.0.26228.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3EF356B5-E2D3-45E3-B515-99F4611ACBDA}"
 EndProject
@@ -119,6 +119,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{216989C4-1EE9-4CD3-A790-2B60A6BAF5C3}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		NuGet.ruleset = NuGet.ruleset
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGet.VisualStudio.Test", "test\NuGet.Clients.Tests\NuGet.VisualStudio.Test\NuGet.VisualStudio.Test.csproj", "{D94C66B2-0404-4606-B719-1FE57F981552}"
