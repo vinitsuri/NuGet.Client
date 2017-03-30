@@ -11,7 +11,7 @@
     <WarningsAsErrors>False</WarningsAsErrors>
     <NoWarn>$(NoWarn);CS1701</NoWarn>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(TestSDKVersion)" />
     <PackageReference Include="xunit.runner.visualstudio" Version="$(XunitVersion)" />
@@ -19,9 +19,11 @@
     <PackageReference Include="Moq" Version="$(MoqVersion)" />
   </ItemGroup>
 
+<!--
   <ItemGroup Condition=" '$(IsDesktop)' == 'true' ">
     <PackageReference Include="xunit.runner.msbuild" Version="$(XunitVersion)" />
   </ItemGroup>
+-->
 
   <PropertyGroup>
     <TestResultsDirectory>$(ArtifactsDirectory)TestResults\</TestResultsDirectory>
