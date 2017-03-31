@@ -232,6 +232,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{96255044
 		test\EndToEnd\tests\update.ps1 = test\EndToEnd\tests\update.ps1
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet.Tests.Apex", "NuGet.Tests.Apex", "{FF7F04B4-870A-4D7E-B09A-81ED537679AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuGet.Tests.Apex", "test\NuGet.Tests.Apex\NuGet.Tests.Apex\NuGet.Tests.Apex.csproj", "{51600987-4126-4721-9F54-5EB1BE147E06}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -743,6 +747,12 @@ Global
 		{CC657FF4-F66E-4A28-9165-AF112A93EE89}.Mono Release|Any CPU.Build.0 = Mono Release|Any CPU
 		{CC657FF4-F66E-4A28-9165-AF112A93EE89}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CC657FF4-F66E-4A28-9165-AF112A93EE89}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51600987-4126-4721-9F54-5EB1BE147E06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51600987-4126-4721-9F54-5EB1BE147E06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51600987-4126-4721-9F54-5EB1BE147E06}.Mono Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51600987-4126-4721-9F54-5EB1BE147E06}.Mono Release|Any CPU.Build.0 = Release|Any CPU
+		{51600987-4126-4721-9F54-5EB1BE147E06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51600987-4126-4721-9F54-5EB1BE147E06}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -839,5 +849,7 @@ Global
 		{7D0DDCB8-E362-4283-8AC8-3FF1E9B0263E} = {23CEFC88-9365-4464-A517-700224ECA033}
 		{CC657FF4-F66E-4A28-9165-AF112A93EE89} = {23CEFC88-9365-4464-A517-700224ECA033}
 		{96255044-3776-439B-8496-C460DB9C4F97} = {A8F45E94-4CFD-478C-9FE2-8E6DEE7E0770}
+		{FF7F04B4-870A-4D7E-B09A-81ED537679AD} = {D1549653-9631-4E16-9967-55427174A0DC}
+		{51600987-4126-4721-9F54-5EB1BE147E06} = {FF7F04B4-870A-4D7E-B09A-81ED537679AD}
 	EndGlobalSection
 EndGlobal
