@@ -458,7 +458,7 @@ namespace NuGet.CommandLine.XPlat {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Framework &apos;{0}&apos; -.
+        ///   Looks up a localized string similar to {0} .
         /// </summary>
         internal static string ListPkg_Framework {
             get {
@@ -476,7 +476,7 @@ namespace NuGet.CommandLine.XPlat {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to This poject does not target framework &apos;{0}&apos;..
+        ///   Looks up a localized string similar to This project does not target framework &apos;{0}&apos;..
         /// </summary>
         internal static string ListPkg_NonTargetedFramework {
             get {
@@ -485,7 +485,7 @@ namespace NuGet.CommandLine.XPlat {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to This poject does not reference any package for framework &apos;{0}&apos;..
+        ///   Looks up a localized string similar to This project does not reference any package for framework &apos;{0}&apos;..
         /// </summary>
         internal static string ListPkg_NoPackageRefsForFramework {
             get {
@@ -503,7 +503,7 @@ namespace NuGet.CommandLine.XPlat {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Package &apos;{0}&apos; Version &apos;{1}&apos;..
+        ///   Looks up a localized string similar to {0} {1}..
         /// </summary>
         internal static string ListPkg_PackageAndVersion {
             get {

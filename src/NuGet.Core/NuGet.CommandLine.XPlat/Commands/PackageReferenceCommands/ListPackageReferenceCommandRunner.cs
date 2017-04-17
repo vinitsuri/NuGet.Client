@@ -35,25 +35,34 @@ namespace NuGet.CommandLine.XPlat
             else
             {
                 logger.LogInformation(string.Format(Strings.ListPkg_References, projectPath));
-
+                logger.LogInformation("   |");
+                var lastFramework = packageReferences.Keys.Last();
                 foreach (var framework in packageReferences.Keys)
                 {
-                    logger.LogInformation(string.Format(Strings.ListPkg_Framework, framework));
-                    logger.LogInformation("--------------------------------------------------");
+                    var pipe = "|";
+                    if (framework.Equals(lastFramework))
+                    {
+                        pipe = string.Empty;
+                    }
+                    var frameworkLevelSeparator = "   +---";
+                    var packageLevelSeparator = "   "+pipe+"      +---";
+                    var emptyLineLevelSeparator = "   "+pipe;
 
+                    logger.LogInformation(frameworkLevelSeparator + string.Format(Strings.ListPkg_Framework, framework));
+                    //logger.LogInformation("--------------------------------------------------");
                     if (packageReferences[framework] == null)
                     {
-                        logger.LogInformation(string.Format(Strings.ListPkg_NonTargetedFramework, framework));
+                        logger.LogInformation(packageLevelSeparator + string.Format(Strings.ListPkg_NonTargetedFramework, framework));
                     }
                     else if(!packageReferences[framework].Any())
                     {
                         if(packageDependency == null)
                         {
-                            logger.LogInformation(string.Format(Strings.ListPkg_NoPackageRefsForFramework, framework));
+                            logger.LogInformation(packageLevelSeparator + string.Format(Strings.ListPkg_NoPackageRefsForFramework, framework));
                         }
                         else
                         {
-                            logger.LogInformation(string.Format(Strings.ListPkg_PackageNotReferencedForFramework, 
+                            logger.LogInformation(packageLevelSeparator + string.Format(Strings.ListPkg_PackageNotReferencedForFramework, 
                                 packageDependency.Id, 
                                 framework));
                         }
@@ -62,10 +71,11 @@ namespace NuGet.CommandLine.XPlat
                     {
                         foreach (var packageReference in packageReferences[framework])
                         {
-                            logger.LogInformation(string.Format(Strings.ListPkg_PackageAndVersion, packageReference.Item1, packageReference.Item2));
+                            logger.LogInformation(packageLevelSeparator + string.Format(Strings.ListPkg_PackageAndVersion, packageReference.Item1, packageReference.Item2));
                         }
-                    }
-                    logger.LogInformation($"--------------------------------------------------");
+                    }                    
+                    //logger.LogInformation($"--------------------------------------------------");
+                    logger.LogInformation(emptyLineLevelSeparator);
                 }
             }
         }

@@ -1,4 +1,4 @@
-// Copyright (c) .NET Foundation. All rights reserved.
+﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -32,10 +32,7 @@ namespace NuGet.ProjectModel
 
         public string FilePath { get; set; }
 
-        public string BaseDirectory
-        {
-            get { return Path.GetDirectoryName(FilePath); }
-        }
+        public string BaseDirectory => Path.GetDirectoryName(FilePath);
 
         public string Name { get; set; }
 
@@ -44,14 +41,11 @@ namespace NuGet.ProjectModel
         private NuGetVersion _version = DefaultVersion;
         public NuGetVersion Version
         {
-            get
-            {
-                return _version;
-            }
+            get => _version;
             set
             {
                 _version = value;
-                this.IsDefaultVersion = false;
+                IsDefaultVersion = false;
             }
         }
         public bool IsDefaultVersion { get; set; } = true;

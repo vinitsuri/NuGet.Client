@@ -44,7 +44,11 @@ namespace NuGet.CommandLine.XPlat
             }
             packageReferenceArgs.Logger.LogDebug("Project Dependency Graph Read");
 
-            var projectName = dgSpec.Restore.FirstOrDefault();
+            var projectName = dgSpec
+                .Projects
+                .Where(p => p.Equals(packageReferenceArgs.ProjectPath, StringComparison.OrdinalIgnoreCase))
+                .FirstOrDefault();
+
             var originalPackageSpec = dgSpec.GetProjectSpec(projectName);
 
             // Create a copy to avoid modifying the original spec which may be shared.
