@@ -21,6 +21,11 @@ namespace NuGet.Protocol.Plugins
         string FilePath { get; }
 
         /// <summary>
+        /// Gets the unique identifier for the plugin.
+        /// </summary>
+        string Id { get; }
+
+        /// <summary>
         /// Gets the name of the plugin.
         /// </summary>
         string Name { get; }

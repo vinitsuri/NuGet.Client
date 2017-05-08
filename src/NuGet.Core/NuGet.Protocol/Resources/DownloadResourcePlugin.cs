@@ -5,6 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Common;
+using NuGet.Configuration;
 using NuGet.Packaging.Core;
 using NuGet.Protocol.Core.Types;
 using NuGet.Protocol.Plugins;
@@ -16,22 +17,53 @@ namespace NuGet.Protocol
     /// </summary>
     public sealed class DownloadResourcePlugin : DownloadResource
     {
-        private readonly PluginResource _pluginResource;
+        private PluginCredentialProvider _credentialProvider;
+        private readonly IPlugin _plugin;
+        private readonly PackageSource _packageSource;
+        private readonly IPluginMulticlientUtilities _utilities;
 
         /// <summary>
         /// Instantiates a new <see cref="DownloadResourcePlugin" /> class.
         /// </summary>
-        /// <param name="pluginResource">A plugin resource.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="pluginResource" />
+        /// <param name="plugin">A plugin.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="plugin" />
         /// is <c>null</c>.</exception>
-        public DownloadResourcePlugin(PluginResource pluginResource)
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="utilities" />
+        /// is <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="packageSource" />
+        /// is <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="credentialProvider" />
+        /// is <c>null</c>.</exception>
+        public DownloadResourcePlugin(
+            IPlugin plugin,
+            IPluginMulticlientUtilities utilities,
+            PackageSource packageSource,
+            PluginCredentialProvider credentialProvider)
         {
-            if (pluginResource == null)
+            if (plugin == null)
             {
-                throw new ArgumentNullException(nameof(pluginResource));
+                throw new ArgumentNullException(nameof(plugin));
             }
 
-            _pluginResource = pluginResource;
+            if (utilities == null)
+            {
+                throw new ArgumentNullException(nameof(utilities));
+            }
+
+            if (packageSource == null)
+            {
+                throw new ArgumentNullException(nameof(packageSource));
+            }
+
+            if (credentialProvider == null)
+            {
+                throw new ArgumentNullException(nameof(credentialProvider));
+            }
+
+            _plugin = plugin;
+            _utilities = utilities;
+            _packageSource = packageSource;
+            _credentialProvider = credentialProvider;
         }
 
         /// <summary>
@@ -45,17 +77,57 @@ namespace NuGet.Protocol
         /// <returns>A task that represents the asynchronous operation.
         /// The task result (<see cref="Task{TResult}.Result" />) returns
         /// a <see cref="DownloadResourceResult" />.</returns>
-        public override async Task<DownloadResourceResult> GetDownloadResourceResultAsync(
+        public async override Task<DownloadResourceResult> GetDownloadResourceResultAsync(
             PackageIdentity identity,
             PackageDownloadContext downloadContext,
             string globalPackagesFolder,
             ILogger logger,
             CancellationToken token)
         {
-            using (var plugin = await _pluginResource.GetPluginAsync(OperationClaim.DownloadPackage, logger, token))
+            TryAddLogger(_plugin, logger);
+
+            _credentialProvider = TryUpdateCredentialProvider(_plugin, _credentialProvider);
+
+            var response = await _plugin.Connection.SendRequestAndReceiveResponseAsync<PrefetchPackageRequest, PrefetchPackageResponse>(
+                MessageMethod.PrefetchPackage,
+                new PrefetchPackageRequest(_packageSource.Source, identity.Id, identity.Version.ToNormalizedString()),
+                token);
+
+            if (response.ResponseCode == MessageResponseCode.Success)
             {
-                throw new NotImplementedException();
+                var packageReader = new PluginPackageReader(_plugin, identity, _packageSource.Source);
+
+                return new DownloadResourceResult(packageReader, _packageSource.Source);
             }
+
+            if (response.ResponseCode == MessageResponseCode.NotFound)
+            {
+                return new DownloadResourceResult(DownloadResourceResultStatus.NotFound);
+            }
+
+            throw new PluginException($"Plugin failed to download {identity.Id}{identity.Version.ToNormalizedString()}");
+        }
+
+        private void TryAddLogger(IPlugin plugin, ILogger logger)
+        {
+            plugin.Connection.MessageDispatcher.RequestHandlers.TryAdd(MessageMethod.Log, new LogRequestHandler(logger, LogLevel.Debug));
+        }
+
+        private static PluginCredentialProvider TryUpdateCredentialProvider(IPlugin plugin, PluginCredentialProvider credentialProvider)
+        {
+            if (plugin.Connection.MessageDispatcher.RequestHandlers.TryAdd(MessageMethod.GetCredential, credentialProvider))
+            {
+                return credentialProvider;
+            }
+
+            IRequestHandler handler;
+
+            if (plugin.Connection.MessageDispatcher.RequestHandlers.TryGet(MessageMethod.GetCredential, out handler))
+            {
+                return (PluginCredentialProvider)handler;
+            }
+
+            throw new InvalidOperationException();
         }
     }
 }

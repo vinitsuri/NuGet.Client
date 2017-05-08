@@ -71,8 +71,6 @@ namespace NuGet.Protocol.Plugins
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            PluginUtilities.WaitForAttachIfPluginDebuggingIsEnabled();
-
             if (_results != null)
             {
                 return _results;
@@ -82,6 +80,11 @@ namespace NuGet.Protocol.Plugins
 
             try
             {
+                if (_results != null)
+                {
+                    return _results;
+                }
+
                 _pluginFiles = GetPluginFiles(cancellationToken);
                 var results = new List<PluginDiscoveryResult>();
 

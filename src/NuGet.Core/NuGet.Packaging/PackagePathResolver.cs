@@ -47,6 +47,16 @@ namespace NuGet.Packaging
             return fileNameBase.ToString();
         }
 
+        public string GetPluginPackageDownloadFileName(PackageIdentity packageIdentity)
+        {
+            var builder = new StringBuilder();
+
+            builder.Append(GetId(packageIdentity));
+            builder.Append(".packagedownload.plugin");
+
+            return builder.ToString();
+        }
+
         public string GetManifestFileName(PackageIdentity packageIdentity)
         {
             return GetId(packageIdentity) + PackagingCoreConstants.NuspecExtension;

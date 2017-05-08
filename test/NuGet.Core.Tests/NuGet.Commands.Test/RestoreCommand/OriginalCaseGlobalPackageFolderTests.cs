@@ -231,6 +231,10 @@ namespace NuGet.Commands.Test
             var dependencyProvider = new Mock<IRemoteDependencyProvider>();
 
             dependencyProvider
+                .Setup(x => x.CanCopyToStreamAsync(It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(true));
+
+            dependencyProvider
                 .Setup(x => x.CopyToAsync(
                     It.IsAny<LibraryIdentity>(),
                     It.IsAny<Stream>(),

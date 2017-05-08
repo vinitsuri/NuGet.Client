@@ -123,7 +123,8 @@ namespace NuGet.Protocol.Plugins
 
             sessionCancellationToken.ThrowIfCancellationRequested();
 
-            var lazyTask = _plugins.GetOrAdd(filePath,
+            var lazyTask = _plugins.GetOrAdd(
+                filePath,
                 (path) => new Lazy<Task<IPlugin>>(
                     () => CreatePluginAsync(filePath, arguments, requestHandlers, options, sessionCancellationToken)));
 
@@ -239,6 +240,8 @@ namespace NuGet.Protocol.Plugins
                 isOwnProcess: true,
                 idleTimeout: Timeout.InfiniteTimeSpan);
 
+            requestHandlers.TryAdd(MessageMethod.MonitorNuGetProcessExit, new MonitorNuGetProcessExitHandler(plugin));
+
             try
             {
                 await connection.ConnectAsync(sessionCancellationToken);
@@ -263,7 +266,10 @@ namespace NuGet.Protocol.Plugins
             {
                 if (lazyTask.IsValueCreated && lazyTask.Value.Status == TaskStatus.RanToCompletion)
                 {
-                    lazyTask.Value.Result.Dispose();
+                    using (var pluginSingleton = lazyTask.Value.Result)
+                    {
+                        SendShutdownRequest(pluginSingleton);
+                    }
                 }
             }
             else
@@ -285,6 +291,24 @@ namespace NuGet.Protocol.Plugins
         private void OnPluginIdle(object sender, PluginEventArgs e)
         {
             DisposePlugin(e.Plugin);
+        }
+
+        private void SendShutdownRequest(IPlugin plugin)
+        {
+            var message = plugin.Connection.MessageDispatcher.CreateMessage(
+                MessageType.Request,
+                MessageMethod.Shutdown);
+
+            using (var cancellationTokenSource = new CancellationTokenSource(PluginConstants.ShutdownTimeout))
+            {
+                try
+                {
+                    plugin.Connection.SendAsync(message, cancellationTokenSource.Token).Wait();
+                }
+                catch (Exception)
+                {
+                }
+            }
         }
 
         private void RegisterEventHandlers(Plugin plugin)

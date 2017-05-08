@@ -14,9 +14,49 @@ namespace NuGet.Protocol.Plugins
         None,
 
         /// <summary>
+        /// Copy a .nupkg file
+        /// </summary>
+        CopyNupkgFile,
+
+        /// <summary>
+        /// Copy package files
+        /// </summary>
+        CopyPackageFiles,
+
+        /// <summary>
+        /// Download a package
+        /// </summary>
+        DownloadPackage,
+
+        /// <summary>
+        /// Get a credential
+        /// </summary>
+        GetCredential,
+
+        /// <summary>
+        /// Get credentials
+        /// </summary>
+        GetCredentials,
+
+        /// <summary>
+        /// Get a file in a package
+        /// </summary>
+        GetFileInPackage,
+
+        /// <summary>
+        /// Get files in a package
+        /// </summary>
+        GetFilesInPackage,
+
+        /// <summary>
         /// Get operation claims
         /// </summary>
         GetOperationClaims,
+
+        /// <summary>
+        /// Get package versions
+        /// </summary>
+        GetPackageVersions,
 
         /// <summary>
         /// Handshake
@@ -31,6 +71,26 @@ namespace NuGet.Protocol.Plugins
         /// <summary>
         /// Log
         /// </summary>
-        Log
+        Log,
+
+        /// <summary>
+        /// Monitor NuGet process exit
+        /// </summary>
+        MonitorNuGetProcessExit,
+
+        /// <summary>
+        /// Prefetch a package
+        /// </summary>
+        PrefetchPackage,
+
+        /// <summary>
+        /// Set package source credentials
+        /// </summary>
+        SetPackageSourceCredentials,
+
+        /// <summary>
+        /// Shutdown
+        /// </summary>
+        Shutdown
     }
 }

@@ -49,6 +49,11 @@ namespace NuGet.Protocol.Plugins
         public string FilePath { get; }
 
         /// <summary>
+        /// Gets the unique identifier for the plugin.
+        /// </summary>
+        public string Id { get; }
+
+        /// <summary>
         /// Gets the name of the plugin.
         /// </summary>
         public string Name { get; }
@@ -95,13 +100,14 @@ namespace NuGet.Protocol.Plugins
 
             Name = Path.GetFileNameWithoutExtension(filePath);
             FilePath = filePath;
+            Id = Guid.NewGuid().ToString("N");
             _connection = connection;
             _process = process;
             _isOwnProcess = isOwnProcess;
             _idleTimerLock = new object();
             _idleTimeout = idleTimeout;
 
-            if (idleTimeout != Timeout.InfiniteTimeSpan)
+            if (idleTimeout != Timeout.InfiniteTimeSpan && !PluginUtilities.IsDebuggingPlugin())
             {
                 _idleTimer = new Timer(OnIdleTimer, state: null, dueTime: idleTimeout, period: Timeout.InfiniteTimeSpan);
             }

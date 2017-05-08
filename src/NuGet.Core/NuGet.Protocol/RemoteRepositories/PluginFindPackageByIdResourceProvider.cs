@@ -5,6 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using NuGet.Protocol.Core.Types;
+using NuGet.Protocol.Plugins;
 
 namespace NuGet.Protocol
 {
@@ -50,7 +51,27 @@ namespace NuGet.Protocol
 
             if (pluginResource != null)
             {
-                resource = new PluginFindPackageByIdResource(pluginResource);
+                var serviceIndexResource = await source.GetResourceAsync<ServiceIndexResourceV3>(cancellationToken);
+                var httpHandlerResource = await source.GetResourceAsync<HttpHandlerResource>(cancellationToken);
+
+                if (serviceIndexResource != null && httpHandlerResource != null)
+                {
+                    var credentialProvider = new PluginCredentialProvider(
+                        source.PackageSource,
+                        httpHandlerResource,
+                        HttpHandlerResourceV3.CredentialService);
+
+                    var result = await pluginResource.GetPluginAsync(OperationClaim.DownloadPackage, cancellationToken);
+
+                    if (result != null)
+                    {
+                        resource = new PluginFindPackageByIdResource(
+                            result.Plugin,
+                            result.PluginMulticlientUtilities,
+                            source.PackageSource,
+                            credentialProvider);
+                    }
+                }
             }
 
             return new Tuple<bool, INuGetResource>(resource != null, resource);

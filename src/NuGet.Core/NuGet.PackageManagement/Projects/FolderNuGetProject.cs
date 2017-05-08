@@ -24,7 +24,7 @@ namespace NuGet.ProjectManagement
     {
         public string Root { get; set; }
         private PackagePathResolver PackagePathResolver { get; }
-        
+
         public FolderNuGetProject(string root)
             : this(root, new PackagePathResolver(root))
         {
@@ -73,7 +73,8 @@ namespace NuGet.ProjectManagement
                 throw new ArgumentNullException(nameof(nuGetProjectContext));
             }
 
-            if (!downloadResourceResult.PackageStream.CanSeek)
+            if (downloadResourceResult.Status == DownloadResourceResultStatus.Available &&
+                !downloadResourceResult.PackageStream.CanSeek)
             {
                 throw new ArgumentException(Strings.PackageStreamShouldBeSeekable);
             }
@@ -101,18 +102,33 @@ namespace NuGet.ProjectManagement
                     nuGetProjectContext.Log(MessageLevel.Info, Strings.AddingPackageToFolder, packageIdentity, Path.GetFullPath(Root));
 
                     // 3. Call PackageExtractor to extract the package into the root directory of this FileSystemNuGetProject
-                    downloadResourceResult.PackageStream.Seek(0, SeekOrigin.Begin);
+                    if (downloadResourceResult.Status == DownloadResourceResultStatus.Available)
+                    {
+                        downloadResourceResult.PackageStream.Seek(0, SeekOrigin.Begin);
+                    }
                     var addedPackageFilesList = new List<string>();
-                    
+
                     if (downloadResourceResult.PackageReader != null)
                     {
-                        addedPackageFilesList.AddRange(
-                            await PackageExtractor.ExtractPackageAsync(
-                                downloadResourceResult.PackageReader,
-                                downloadResourceResult.PackageStream,
-                                PackagePathResolver,
-                                packageExtractionContext,
-                                cancellationToken));
+                        if (downloadResourceResult.Status == DownloadResourceResultStatus.AvailableWithoutStream)
+                        {
+                            addedPackageFilesList.AddRange(
+                                await PackageExtractor.ExtractPackageAsync(
+                                    downloadResourceResult.PackageReader,
+                                    PackagePathResolver,
+                                    packageExtractionContext,
+                                    cancellationToken));
+                        }
+                        else
+                        {
+                            addedPackageFilesList.AddRange(
+                                await PackageExtractor.ExtractPackageAsync(
+                                    downloadResourceResult.PackageReader,
+                                    downloadResourceResult.PackageStream,
+                                    PackagePathResolver,
+                                    packageExtractionContext,
+                                    cancellationToken));
+                        }
                     }
                     else
                     {
@@ -170,15 +186,20 @@ namespace NuGet.ProjectManagement
             var packageExists = !string.IsNullOrEmpty(GetInstalledPackageFilePath(packageIdentity));
             var manifestExists = !string.IsNullOrEmpty(GetInstalledManifestFilePath(packageIdentity));
 
+            if (!packageExists)
+            {
+                packageExists |= !string.IsNullOrEmpty(GetPluginPackageDownloadFilePath(packageIdentity));
+            }
+
             // A package must have either a nupkg or a nuspec to be valid
             var result = packageExists || manifestExists;
-            
+
             // Verify nupkg present if specified
             if ((packageSaveMode & PackageSaveMode.Nupkg) == PackageSaveMode.Nupkg)
             {
                 result &= packageExists;
             }
-            
+
             // Verify nuspec present if specified
             if ((packageSaveMode & PackageSaveMode.Nuspec) == PackageSaveMode.Nuspec)
             {
@@ -286,6 +307,22 @@ namespace NuGet.ProjectManagement
 
             // Don't look in non-normalized paths for nuspec
             return string.Empty;
+        }
+
+        public string GetPluginPackageDownloadFilePath(PackageIdentity packageIdentity)
+        {
+            var packageDirectory = PackagePathResolver.GetInstallPath(packageIdentity);
+            var fileName = PackagePathResolver.GetPluginPackageDownloadFileName(packageIdentity);
+
+            var filePath = Path.GetFullPath(Path.Combine(packageDirectory, fileName));
+
+            // Keep the previous optimization of just going by the existance of the file if we find it.
+            if (File.Exists(filePath))
+            {
+                return filePath;
+            }
+
+            return null;
         }
 
         /// <summary>

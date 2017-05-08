@@ -16,6 +16,7 @@ namespace NuGet.Protocol.Plugins.Tests
 {
     public class PluginResourceProviderTests
     {
+        private const string _sourceUri = "https://unit.test";
         private const string _environmentVariable = "NUGET_PLUGIN_PATHS";
         private readonly PluginResourceProvider _provider;
 
@@ -66,7 +67,7 @@ namespace NuGet.Protocol.Plugins.Tests
         [Fact]
         public async Task TryCreate_ThrowsIfCancelled()
         {
-            var sourceRepository = CreateSourceRepository(serviceIndexResource: null);
+            var sourceRepository = CreateSourceRepository(serviceIndexResource: null, sourceUri: _sourceUri);
 
             await Assert.ThrowsAsync<OperationCanceledException>(
                 () => _provider.TryCreate(sourceRepository, new CancellationToken(canceled: true)));
@@ -78,70 +79,78 @@ namespace NuGet.Protocol.Plugins.Tests
         public async Task TryCreate_ReturnsFalseForNullOrEmptyEnvironmentVariable(string pluginsPath)
         {
             var serviceIndex = new ServiceIndexResourceV3(JObject.Parse("{}"), DateTime.UtcNow);
-            var sourceRepository = CreateSourceRepository(serviceIndex);
+            var sourceRepository = CreateSourceRepository(serviceIndex, _sourceUri);
+            var reader = new Mock<IEnvironmentVariableReader>(MockBehavior.Strict);
 
-            using (new EnvironmentVariableReaderResetter())
-            {
-                var reader = new Mock<IEnvironmentVariableReader>(MockBehavior.Strict);
+            reader.Setup(x => x.GetEnvironmentVariable(It.Is<string>(value => value == _environmentVariable)))
+                .Returns(pluginsPath);
 
-                reader.Setup(x => x.GetEnvironmentVariable(It.Is<string>(value => value == _environmentVariable)))
-                    .Returns(pluginsPath);
+            _provider.Reinitialize(reader.Object);
 
-                PluginResourceProvider.Reinitialize(reader.Object);
+            var result = await _provider.TryCreate(sourceRepository, CancellationToken.None);
 
-                var result = await _provider.TryCreate(sourceRepository, CancellationToken.None);
-
-                Assert.False(result.Item1);
-                Assert.Null(result.Item2);
-            }
+            Assert.False(result.Item1);
+            Assert.Null(result.Item2);
         }
 
         [Fact]
         public async Task TryCreate_ReturnsFalseIfNoServiceIndexResourceV3()
         {
-            var sourceRepository = CreateSourceRepository(serviceIndexResource: null);
+            var sourceRepository = CreateSourceRepository(serviceIndexResource: null, sourceUri: _sourceUri);
+            var reader = new Mock<IEnvironmentVariableReader>(MockBehavior.Strict);
 
-            using (new EnvironmentVariableReaderResetter())
-            {
-                var reader = new Mock<IEnvironmentVariableReader>(MockBehavior.Strict);
+            reader.Setup(x => x.GetEnvironmentVariable(It.Is<string>(value => value == _environmentVariable)))
+                .Returns("a");
 
-                reader.Setup(x => x.GetEnvironmentVariable(It.Is<string>(value => value == _environmentVariable)))
-                    .Returns("a");
+            _provider.Reinitialize(reader.Object);
 
-                PluginResourceProvider.Reinitialize(reader.Object);
+            var result = await _provider.TryCreate(sourceRepository, CancellationToken.None);
 
-                var result = await _provider.TryCreate(sourceRepository, CancellationToken.None);
+            Assert.False(result.Item1);
+            Assert.Null(result.Item2);
+        }
 
-                Assert.False(result.Item1);
-                Assert.Null(result.Item2);
-            }
+        [Theory]
+        [InlineData("\\unit\test")]
+        [InlineData("file:///C:/unit/test")]
+        public async Task TryCreate_ReturnsFalseIfPackageSourceIsNotHttpOrHttps(string sourceUri)
+        {
+            var serviceIndex = new ServiceIndexResourceV3(JObject.Parse("{}"), DateTime.UtcNow);
+            var sourceRepository = CreateSourceRepository(serviceIndex, sourceUri);
+            var reader = new Mock<IEnvironmentVariableReader>(MockBehavior.Strict);
+
+            reader.Setup(x => x.GetEnvironmentVariable(It.Is<string>(value => value == _environmentVariable)))
+                .Returns("a");
+
+            _provider.Reinitialize(reader.Object);
+
+            var result = await _provider.TryCreate(sourceRepository, CancellationToken.None);
+
+            Assert.False(result.Item1);
+            Assert.Null(result.Item2);
         }
 
         [PlatformFact(Platform.Windows)]
         public async Task TryCreate_ReturnsPluginResource()
         {
             var serviceIndex = new ServiceIndexResourceV3(JObject.Parse("{}"), DateTime.UtcNow);
-            var sourceRepository = CreateSourceRepository(serviceIndex);
+            var sourceRepository = CreateSourceRepository(serviceIndex, _sourceUri);
+            var reader = new Mock<IEnvironmentVariableReader>(MockBehavior.Strict);
 
-            using (new EnvironmentVariableReaderResetter())
-            {
-                var reader = new Mock<IEnvironmentVariableReader>(MockBehavior.Strict);
+            reader.Setup(x => x.GetEnvironmentVariable(It.Is<string>(value => value == _environmentVariable)))
+                .Returns("a");
 
-                reader.Setup(x => x.GetEnvironmentVariable(It.Is<string>(value => value == _environmentVariable)))
-                    .Returns("a");
+            _provider.Reinitialize(reader.Object);
 
-                PluginResourceProvider.Reinitialize(reader.Object);
+            var result = await _provider.TryCreate(sourceRepository, CancellationToken.None);
 
-                var result = await _provider.TryCreate(sourceRepository, CancellationToken.None);
-
-                Assert.True(result.Item1);
-                Assert.IsType<PluginResource>(result.Item2);
-            }
+            Assert.True(result.Item1);
+            Assert.IsType<PluginResource>(result.Item2);
         }
 
-        private static SourceRepository CreateSourceRepository(ServiceIndexResourceV3 serviceIndexResource)
+        private static SourceRepository CreateSourceRepository(ServiceIndexResourceV3 serviceIndexResource, string sourceUri)
         {
-            var packageSource = new PackageSource(source: "a");
+            var packageSource = new PackageSource(sourceUri);
             var provider = new Mock<ServiceIndexResourceV3Provider>();
 
             provider.Setup(x => x.Name)
@@ -155,21 +164,6 @@ namespace NuGet.Protocol.Plugins.Tests
                 .Returns(Task.FromResult(tryCreateResult));
 
             return new SourceRepository(packageSource, new[] { provider.Object });
-        }
-
-        private sealed class EnvironmentVariableReaderResetter : IDisposable
-        {
-            private readonly IEnvironmentVariableReader _originalReader;
-
-            internal EnvironmentVariableReaderResetter()
-            {
-                _originalReader = PluginResourceProvider.EnvironmentVariableReader;
-            }
-
-            public void Dispose()
-            {
-                PluginResourceProvider.Reinitialize(_originalReader);
-            }
         }
     }
 }

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -16,25 +17,40 @@ using NuGet.Protocol.Plugins;
 namespace NuGet.Protocol.Core.Types
 {
     // Unsealed for testing purposes.
-    public class PluginResourceProvider : ResourceProvider
+    public class PluginResourceProvider : ResourceProvider, IDisposable
     {
         private const string _environmentVariable = "NUGET_PLUGIN_PATHS";
 
-        private static Lazy<PluginDiscoverer> _discoverer;
-        private static PluginFactory _pluginFactory;
-        private static ConcurrentDictionary<string, Lazy<Task<IReadOnlyList<OperationClaim>>>> _pluginOperationClaims;
-        private static string _rawPluginPaths;
+        private Lazy<PluginDiscoverer> _discoverer;
+        private bool _isDisposed;
+        private PluginFactory _pluginFactory;
+        private ConcurrentDictionary<string, Lazy<Task<IReadOnlyList<OperationClaim>>>> _pluginOperationClaims;
+        private ConcurrentDictionary<string, Lazy<IPluginMulticlientUtilities>> _pluginUtilities;
+        private string _rawPluginPaths;
+
+        private static Lazy<int> _currentProcessId = new Lazy<int>(GetCurrentProcessId);
 
         public static IEnvironmentVariableReader EnvironmentVariableReader { get; private set; }
-
-        static PluginResourceProvider()
-        {
-            Reinitialize(new EnvironmentVariableWrapper());
-        }
 
         public PluginResourceProvider()
             : base(typeof(PluginResource), nameof(PluginResourceProvider))
         {
+            Reinitialize(new EnvironmentVariableWrapper());
+        }
+
+        public void Dispose()
+        {
+            if (!_isDisposed)
+            {
+                if (_discoverer.IsValueCreated)
+                {
+                    _discoverer.Value.Dispose();
+                }
+
+                _pluginFactory.Dispose();
+
+                _isDisposed = true;
+            }
         }
 
         public override async Task<Tuple<bool, INuGetResource>> TryCreate(
@@ -51,7 +67,7 @@ namespace NuGet.Protocol.Core.Types
             PluginResource resource = null;
 
             // Fast path
-            if (IsPluginPossiblyAvailable())
+            if (source.PackageSource.IsHttp && IsPluginPossiblyAvailable())
             {
                 var serviceIndex = await source.GetResourceAsync<ServiceIndexResourceV3>(cancellationToken);
 
@@ -67,7 +83,7 @@ namespace NuGet.Protocol.Core.Types
 
                     if (pluginCreationResults.Any())
                     {
-                        resource = new PluginResource(pluginCreationResults);
+                        resource = new PluginResource(pluginCreationResults, source.PackageSource);
                     }
                 }
             }
@@ -80,13 +96,15 @@ namespace NuGet.Protocol.Core.Types
         /// </summary>
         /// <remarks>This is non-private only to facilitate unit testing.</remarks>
         /// <param name="reader">An environment variable reader.</param>
-        public static void Reinitialize(IEnvironmentVariableReader reader)
+        public void Reinitialize(IEnvironmentVariableReader reader)
         {
             EnvironmentVariableReader = reader;
             _rawPluginPaths = reader?.GetEnvironmentVariable(_environmentVariable);
             _discoverer = new Lazy<PluginDiscoverer>(InitializeDiscoverer);
             _pluginFactory = new PluginFactory(PluginConstants.IdleTimeout);
             _pluginOperationClaims = new ConcurrentDictionary<string, Lazy<Task<IReadOnlyList<OperationClaim>>>>(
+                StringComparer.OrdinalIgnoreCase);
+            _pluginUtilities = new ConcurrentDictionary<string, Lazy<IPluginMulticlientUtilities>>(
                 StringComparer.OrdinalIgnoreCase);
         }
 
@@ -114,6 +132,24 @@ namespace NuGet.Protocol.Core.Types
                         ConnectionOptions.CreateDefault(),
                         cancellationToken);
 
+                    var utilities = _pluginUtilities.GetOrAdd(
+                        plugin.Id,
+                        path => new Lazy<IPluginMulticlientUtilities>(
+                            () => new PluginMulticlientUtilities()));
+
+                    await utilities.Value.DoOncePerPluginLifetimeAsync(
+                        MessageMethod.MonitorNuGetProcessExit.ToString(),
+                        () => plugin.Connection.SendRequestAndReceiveResponseAsync<MonitorNuGetProcessExitRequest, MonitorNuGetProcessExitResponse>(
+                            MessageMethod.MonitorNuGetProcessExit,
+                            new MonitorNuGetProcessExitRequest(_currentProcessId.Value),
+                            cancellationToken),
+                        cancellationToken);
+
+                    await utilities.Value.DoOncePerPluginLifetimeAsync(
+                        MessageMethod.Initialize.ToString(),
+                        () => InitializePluginAsync(plugin, cancellationToken),
+                        cancellationToken);
+
                     var lazyOperationClaims = _pluginOperationClaims.GetOrAdd(
                         result.PluginFile.Path,
                         filePath => new Lazy<Task<IReadOnlyList<OperationClaim>>>(() => GetPluginOperationClaimsAsync(
@@ -124,7 +160,7 @@ namespace NuGet.Protocol.Core.Types
 
                     await lazyOperationClaims.Value;
 
-                    pluginCreationResult = new PluginCreationResult(plugin, lazyOperationClaims.Value.Result);
+                    pluginCreationResult = new PluginCreationResult(plugin, utilities.Value, lazyOperationClaims.Value.Result);
                 }
                 else
                 {
@@ -143,8 +179,6 @@ namespace NuGet.Protocol.Core.Types
             JObject serviceIndex,
             CancellationToken cancellationToken)
         {
-            await InitializePluginAsync(plugin, cancellationToken);
-
             var payload = new GetOperationClaimsRequest(packageSourceRepository, serviceIndex);
 
             var response = await plugin.Connection.SendRequestAndReceiveResponseAsync<GetOperationClaimsRequest, GetOperationClaimsResponse>(
@@ -155,13 +189,37 @@ namespace NuGet.Protocol.Core.Types
             return response.Claims;
         }
 
+        private PluginDiscoverer InitializeDiscoverer()
+        {
+            var verifier = EmbeddedSignatureVerifier.Create();
+
+            return new PluginDiscoverer(_rawPluginPaths, verifier);
+        }
+
+        private bool IsPluginPossiblyAvailable()
+        {
+            return !string.IsNullOrEmpty(_rawPluginPaths);
+        }
+
+        private static int GetCurrentProcessId()
+        {
+            using (var process = Process.GetCurrentProcess())
+            {
+                return process.Id;
+            }
+        }
+
         private static async Task InitializePluginAsync(
             IPlugin plugin,
             CancellationToken cancellationToken)
         {
             var clientVersion = MinClientVersionUtility.GetNuGetClientVersion().ToNormalizedString();
             var culture = CultureInfo.CurrentCulture.Name;
-            var payload = new InitializeRequest(clientVersion, culture, Verbosity.Detailed, TimeSpan.FromSeconds(30));
+            var payload = new InitializeRequest(
+                clientVersion,
+                culture,
+                Verbosity.Detailed,
+                PluginConstants.RequestTimeout);
 
             var response = await plugin.Connection.SendRequestAndReceiveResponseAsync<InitializeRequest, InitializeResponse>(
                 MessageMethod.Initialize,
@@ -172,18 +230,8 @@ namespace NuGet.Protocol.Core.Types
             {
                 throw new PluginException(Strings.Plugin_InitializationFailed);
             }
-        }
 
-        private static PluginDiscoverer InitializeDiscoverer()
-        {
-            var verifier = EmbeddedSignatureVerifier.Create();
-
-            return new PluginDiscoverer(_rawPluginPaths, verifier);
-        }
-
-        private static bool IsPluginPossiblyAvailable()
-        {
-            return !string.IsNullOrEmpty(_rawPluginPaths);
+            plugin.Connection.Options.SetRequestTimeout(PluginConstants.RequestTimeout);
         }
     }
 }

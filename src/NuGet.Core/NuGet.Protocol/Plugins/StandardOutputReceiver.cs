@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -120,21 +119,6 @@ namespace NuGet.Protocol.Plugins
             {
                 FireFaultEvent(ex, message);
             }
-        }
-
-        private static string RemoveUtf8Bom(string data)
-        {
-            if (!string.IsNullOrEmpty(data))
-            {
-                var bytes = Encoding.UTF8.GetBytes(data);
-
-                if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
-                {
-                    return Encoding.UTF8.GetString(bytes, index: 3, count: bytes.Length - 3);
-                }
-            }
-
-            return data;
         }
     }
 }
