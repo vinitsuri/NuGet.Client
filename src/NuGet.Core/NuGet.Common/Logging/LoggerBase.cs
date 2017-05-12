@@ -40,42 +40,42 @@ namespace NuGet.Common
             return Task.FromResult(true);
         }
 
-        public void LogDebug(string data)
+        public virtual void LogDebug(string data)
         {
             Log(LogLevel.Debug, data);
         }
 
-        public void LogError(string data)
+        public virtual void LogError(string data)
         {
             Log(LogLevel.Error, data);
         }
 
-        public void LogErrorSummary(string data)
+        public virtual void LogErrorSummary(string data)
         {
             Log(LogLevel.Error, data);
         }
 
-        public void LogInformation(string data)
+        public virtual void LogInformation(string data)
         {
             Log(LogLevel.Information, data);
         }
 
-        public void LogInformationSummary(string data)
+        public virtual void LogInformationSummary(string data)
         {
             Log(LogLevel.Information, data);
         }
 
-        public void LogMinimal(string data)
+        public virtual void LogMinimal(string data)
         {
             Log(LogLevel.Minimal, data);
         }
 
-        public void LogVerbose(string data)
+        public virtual void LogVerbose(string data)
         {
             Log(LogLevel.Verbose, data);
         }
 
-        public void LogWarning(string data)
+        public virtual void LogWarning(string data)
         {
             Log(LogLevel.Warning, data);
         }
