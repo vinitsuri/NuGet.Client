@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,6 +8,7 @@ using NuGet.Packaging.Core;
 namespace NuGet.CommandLine
 {
     using System.Globalization;
+    using System.IO.Compression;
     using NuGet.Packaging;
     using NuGet.Versioning;
 
@@ -33,6 +34,9 @@ namespace NuGet.CommandLine
 
         [Option(typeof(NuGetCommand), "PackageCommandSuffixDescription")]
         public string Suffix { get; set; }
+
+        [Option(typeof(NuGetCommand), "PackageCommandCompressionLevelDescription")]
+        public string CompressionLevel { get; set; }
 
         [Option(typeof(NuGetCommand), "PackageCommandExcludeDescription")]
         public ICollection<string> Exclude
@@ -130,6 +134,7 @@ namespace NuGet.CommandLine
                     break;
                 }
             }
+
             packArgs.MinClientVersion = _minClientVersionValue;
             packArgs.NoDefaultExcludes = NoDefaultExcludes;
             packArgs.NoPackageAnalysis = NoPackageAnalysis;

@@ -6617,6 +6617,15 @@ namespace NuGet.CommandLine {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Specifies the compression level to use. Options include Fastest, NoCompression, and Optimal. Same meaning as for zip compression..
+        /// </summary>
+        internal static string PackageCommandCompressionLevelDescription {
+            get {
+                return ResourceManager.GetString("PackageCommandCompressionLevelDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Creates a NuGet package based on the specified nuspec or project file..
         /// </summary>
         internal static string PackageCommandDescription {
@@ -10657,7 +10666,7 @@ namespace NuGet.CommandLine {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to [&lt;solution&gt; | &lt;packages.config file&gt; | &lt;project.json&gt; | &lt;Microsoft Build project&gt;] [options].
+        ///   Looks up a localized string similar to [&lt;solution&gt; | &lt;packages.config file&gt; | &lt;Microsoft Build project&gt;] [options].
         /// </summary>
         internal static string RestoreCommandUsageSummary {
             get {
