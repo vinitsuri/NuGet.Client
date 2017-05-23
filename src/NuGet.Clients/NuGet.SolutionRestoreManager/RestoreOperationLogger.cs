@@ -37,7 +37,6 @@ namespace NuGet.SolutionRestoreManager
         private bool _cancelled;
         private bool _hasHeaderBeenShown;
         private bool _showErrorList;
-        private int _outputVerbosity;
 
         // The value of the "MSBuild project build output verbosity" setting
         // of VS. From 0 (quiet) to 4 (Diagnostic).
@@ -133,7 +132,7 @@ namespace NuGet.SolutionRestoreManager
         {
             HandleErrorsAndWarnings(logMessage);
 
-            if (ShouldLogToVS(logMessage))
+            if (ShouldShowMessage(logMessage))
             {
                 var verbosityLevel = GetMSBuildLevel(logMessage.Level);
                 var reportProgress = ShouldReportProgress(logMessage);
@@ -162,7 +161,7 @@ namespace NuGet.SolutionRestoreManager
         {
             HandleErrorsAndWarnings(logMessage);
 
-            if (ShouldLogToVS(logMessage))
+            if (ShouldShowMessage(logMessage))
             {
                 var verbosityLevel = GetMSBuildLevel(logMessage.Level);
                 var reportProgress = ShouldReportProgress(logMessage);
@@ -182,14 +181,6 @@ namespace NuGet.SolutionRestoreManager
             }
 
             return Task.FromResult(0);
-        }
-
-        private bool ShouldLogToVS(ILogMessage logMessage)
-        {
-            var verbosityLevel = GetMSBuildLevel(logMessage.Level);
-
-            return (ShouldShowMessage(verbosityLevel)
-                && (ShouldShowMessageAsOutput(verbosityLevel) || ShouldReportProgress(logMessage)));
         }
 
         private void LogToVS(bool reportProgress, bool showAsOutputMessage, ILogMessage logMessage, RestoreOperationProgressUI progress)
@@ -219,13 +210,6 @@ namespace NuGet.SolutionRestoreManager
             if (verbosityLevel == MSBuildVerbosityLevel.Quiet ||
                 verbosityLevel == MSBuildVerbosityLevel.Minimal)
             {
-                if (logMessage is IRestoreLogMessage)
-                {
-                    // Ignore restore log messages, these are logged to the
-                    // assets file.
-                    return;
-                }
-
                 var errorLevel = verbosityLevel == MSBuildVerbosityLevel.Quiet ? LogLevel.Error : LogLevel.Warning;
                 var errorListEntry = new ErrorListTableEntry(logMessage.Message, errorLevel);
 
@@ -269,8 +253,10 @@ namespace NuGet.SolutionRestoreManager
         /// <summary>
         /// True if the message has a high enough verbosity level.
         /// </summary>
-        private bool ShouldShowMessage(MSBuildVerbosityLevel verbosityLevel)
+        private bool ShouldShowMessage(ILogMessage logMessage)
         {
+            var verbosityLevel = GetMSBuildLevel(logMessage.Level);
+
             if (_cancelled)
             {
                 // If an operation is canceled, don't log anything, simply return
@@ -318,7 +304,7 @@ namespace NuGet.SolutionRestoreManager
                 if (_operationSource == RestoreOperationSource.Explicit)
                 {
                     // Write to the error window and console
-                    LogError(message);
+                    Log(LogMessage.Create(LogLevel.Error, message));
                 }
                 else
                 {
