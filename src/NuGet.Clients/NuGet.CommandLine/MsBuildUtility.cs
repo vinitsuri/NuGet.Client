@@ -65,7 +65,7 @@ namespace NuGet.CommandLine
         /// <summary>
         /// Returns the closure of project references for projects specified in <paramref name="projectPaths"/>.
         /// </summary>
-        public static async Task<DependencyGraphSpec> GetProjectReferencesAsync(
+        public static async Task GetProjectReferencesAsync(
             string msbuildDirectory,
             string[] projectPaths,
             int timeOut,
@@ -101,7 +101,7 @@ namespace NuGet.CommandLine
                 // Use RestoreUseCustomAfterTargets=true to allow recursion
                 // for scenarios where NuGet is not part of ImportsAfter.
                 var argumentBuilder = new StringBuilder(
-                    "/t:GenerateRestoreGraphFile " +
+                    "/t:Restore " +
                     "/nologo /nr:false /p:RestoreUseCustomAfterTargets=true " +
                     "/p:BuildProjectReferences=false");
 
@@ -110,7 +110,7 @@ namespace NuGet.CommandLine
 
                 if (string.IsNullOrEmpty(msbuildVerbosity))
                 {
-                    argumentBuilder.Append(" /v:q ");
+                    argumentBuilder.Append(" /v:normal ");
                 }
                 else
                 {
@@ -132,10 +132,6 @@ namespace NuGet.CommandLine
                 // Set path to nuget.exe or the build task
                 argumentBuilder.Append(" /p:RestoreTaskAssemblyFile=");
                 AppendQuoted(argumentBuilder, nugetExePath);
-
-                // dg file output path
-                argumentBuilder.Append(" /p:RestoreGraphOutputPath=");
-                AppendQuoted(argumentBuilder, resultsPath);
 
                 // Disallow the import of targets/props from packages
                 argumentBuilder.Append(" /p:ExcludeRestorePackageImports=true ");
@@ -186,65 +182,19 @@ namespace NuGet.CommandLine
 
                 AppendQuoted(argumentBuilder, entryPointTargetPath);
 
-                var processStartInfo = new ProcessStartInfo
+                var filterTokens = new List<HashSet<string>>()
                 {
-                    UseShellExecute = false,
-                    FileName = msbuildPath,
-                    Arguments = argumentBuilder.ToString(),
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true
+                    new HashSet<string>()
+                    {
+                        "msb4011", entryPointTargetPath
+                    }
                 };
 
-                console.LogDebug($"{processStartInfo.FileName} {processStartInfo.Arguments}");
+                var msbuildRunner = new MSBuildRunner(msbuildPath, filterTokens, console);
 
-                using (var process = Process.Start(processStartInfo))
-                {
-                    var errors = new StringBuilder();
-                    var output = new StringBuilder();
-                    var excluded = new string[] { "msb4011", entryPointTargetPath };
-                    var errorTask = ConsumeStreamReaderAsync(process.StandardError, errors, filter: null);
-                    var outputTask = ConsumeStreamReaderAsync(process.StandardOutput, output, filter: (line) => IsIgnoredOutput(line, excluded));
-                    var finished = process.WaitForExit(timeOut);
-                    if (!finished)
-                    {
-                        try
-                        {
-                            process.Kill();
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new CommandLineException(
-                                LocalizedResourceManager.GetString(nameof(NuGetResources.Error_CannotKillMsBuild)) + " : " +
-                                ex.Message,
-                                ex);
-                        }
-
-                        throw new CommandLineException(
-                            LocalizedResourceManager.GetString(nameof(NuGetResources.Error_MsBuildTimedOut)));
-                    }
-
-                    await outputTask;
-
-                    if (process.ExitCode != 0)
-                    {
-                        await errorTask;
-                        throw new CommandLineException(errors.ToString());
-                    }
-                }
-
-                DependencyGraphSpec spec = null;
-
-                if (File.Exists(resultsPath) && new FileInfo(resultsPath).Length != 0)
-                {
-                    spec = DependencyGraphSpec.Load(resultsPath);
-                    File.Delete(resultsPath);
-                }
-                else
-                {
-                    spec = new DependencyGraphSpec();
-                }
-
-                return spec;
+                // Run MSBuild and log output to the console.
+                // A non-zero exit code will result in an exception being thrown.
+                await msbuildRunner.RunAsync(argumentBuilder.ToString(), TimeSpan.FromMilliseconds(timeOut));
             }
         }
 

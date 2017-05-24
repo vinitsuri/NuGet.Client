@@ -81,14 +81,6 @@ namespace NuGet.CommandLine
             var restoreInputs = await DetermineRestoreInputsAsync();
 
             var hasPackagesConfigFiles = restoreInputs.PackagesConfigFiles.Count > 0;
-            var hasProjectJsonOrPackageReferences = restoreInputs.RestoreV3Context.Inputs.Any();
-            if (!hasPackagesConfigFiles && !hasProjectJsonOrPackageReferences)
-            {
-                Console.LogMinimal(LocalizedResourceManager.GetString(restoreInputs.RestoringWithSolutionFile
-                        ? "SolutionRestoreCommandNoPackagesConfigOrProjectJson"
-                        : "ProjectRestoreCommandNoPackagesConfigOrProjectJson"));
-                return;
-            }
 
             // packages.config
             if (hasPackagesConfigFiles)
@@ -97,82 +89,21 @@ namespace NuGet.CommandLine
                 restoreSummaries.Add(v2RestoreResult);
             }
 
-            // project.json and PackageReference
-            if (hasProjectJsonOrPackageReferences)
-            {
-                // Read the settings outside of parallel loops.
-                ReadSettings(restoreInputs);
+            // TODO: this was in an if
+            CheckRequireConsent();
 
-                // Check if we can restore based on the nuget.config settings
-                CheckRequireConsent();
+            // Run inputs through msbuild to determine the
+            // correct type and find dependencies as needed.
+            await RestoreMSBuildProjectsAsync(restoreInputs);
 
-                using (var cacheContext = new SourceCacheContext())
-                {
-                    cacheContext.NoCache = NoCache;
-                    cacheContext.DirectDownload = DirectDownload;
-
-                    var restoreContext = restoreInputs.RestoreV3Context;
-                    var providerCache = new RestoreCommandProvidersCache();
-
-                    // Add restore args to the restore context
-                    restoreContext.CacheContext = cacheContext;
-                    restoreContext.DisableParallel = DisableParallelProcessing;
-                    restoreContext.ConfigFile = ConfigFile;
-                    restoreContext.MachineWideSettings = MachineWideSettings;
-                    restoreContext.Sources = Source.ToList();
-                    restoreContext.Log = Console;
-                    restoreContext.CachingSourceProvider = GetSourceRepositoryProvider();
-
-                    var packageSaveMode = EffectivePackageSaveMode;
-                    if (packageSaveMode != Packaging.PackageSaveMode.None)
-                    {
-                        restoreContext.PackageSaveMode = EffectivePackageSaveMode;
-                    }
-
-                    // Override packages folder
-                    var globalPackagesFolder = SettingsUtility.GetGlobalPackagesFolder(Settings);
-                    restoreContext.GlobalPackagesFolder = GetEffectiveGlobalPackagesFolder(
-                                        PackagesDirectory,
-                                        SolutionDirectory,
-                                        restoreInputs,
-                                        globalPackagesFolder);
-
-                    // Providers
-                    // Use the settings loaded above in ReadSettings(restoreInputs)
-                    if (restoreInputs.ProjectReferenceLookup.Restore.Count > 0)
-                    {
-                        // Remove input list, everything has been loaded already
-                        restoreContext.Inputs.Clear();
-
-                        // Create requests using settings based on the project directory if no solution was used.
-                        // If a solution was used read settings for the solution.
-                        // If null is used for settings they will be read per project.
-                        var settingsOverride = restoreInputs.RestoringWithSolutionFile ? Settings : null;
-
-                        restoreContext.PreLoadedRequestProviders.Add(new DependencyGraphSpecRequestProvider(
-                            providerCache,
-                            restoreInputs.ProjectReferenceLookup,
-                            settingsOverride));
-                    }
-                    else
-                    {
-                        // Allow an external .dg file
-                        restoreContext.RequestProviders.Add(new DependencyGraphFileRequestProvider(providerCache));
-                    }
-
-                    // Run restore
-                    var v3Summaries = await RestoreRunner.Run(restoreContext);
-                    restoreSummaries.AddRange(v3Summaries);
-                }
-            }
-
-            // Summaries
-            RestoreSummary.Log(Console, restoreSummaries);
-
-            if (restoreSummaries.Any(x => !x.Success))
-            {
-                throw new ExitCodeException(exitCode: 1);
-            }
+            // TODO: add this message back!!!
+            //if (!hasPackagesConfigFiles && !hasProjectJsonOrPackageReferences)
+            //{
+            //    Console.LogMinimal(LocalizedResourceManager.GetString(restoreInputs.RestoringWithSolutionFile
+            //            ? "SolutionRestoreCommandNoPackagesConfigOrProjectJson"
+            //            : "ProjectRestoreCommandNoPackagesConfigOrProjectJson"));
+            //    return;
+            //}
         }
 
         private static string GetEffectiveGlobalPackagesFolder(
@@ -411,7 +342,7 @@ namespace NuGet.CommandLine
         /// <summary>
         /// Discover all restore inputs, this checks for both v2 and v3
         /// </summary>
-        private async Task<PackageRestoreInputs> DetermineRestoreInputsAsync()
+        private Task<PackageRestoreInputs> DetermineRestoreInputsAsync()
         {
             var packageRestoreInputs = new PackageRestoreInputs();
 
@@ -447,17 +378,14 @@ namespace NuGet.CommandLine
                     throw new InvalidOperationException(message);
                 }
             }
-            // Run inputs through msbuild to determine the
-            // correct type and find dependencies as needed.
-            await DetermineInputsFromMSBuildAsync(packageRestoreInputs);
 
-            return packageRestoreInputs;
+            return Task.FromResult(packageRestoreInputs);
         }
 
         /// <summary>
         /// Read project inputs using MSBuild
         /// </summary>
-        private async Task DetermineInputsFromMSBuildAsync(PackageRestoreInputs packageRestoreInputs)
+        private async Task RestoreMSBuildProjectsAsync(PackageRestoreInputs packageRestoreInputs)
         {
             // Find P2P graph for v3 inputs.
             // Ignore xproj files as top level inputs
@@ -468,11 +396,9 @@ namespace NuGet.CommandLine
 
             if (projectsWithPotentialP2PReferences.Length > 0)
             {
-                DependencyGraphSpec dgFileOutput = null;
-
                 try
                 {
-                    dgFileOutput = await GetDependencyGraphSpecAsync(projectsWithPotentialP2PReferences);
+                    await RunMSBuildRestoreAsync(projectsWithPotentialP2PReferences);
                 }
                 catch (Exception ex)
                 {
@@ -506,46 +432,7 @@ namespace NuGet.CommandLine
                         throw;
                     }
                 }
-
-                // Process the DG file and add both v2 and v3 inputs
-                if (dgFileOutput != null)
-                {
-                    AddInputsFromDependencyGraphSpec(packageRestoreInputs, dgFileOutput);
-                }
             }
-        }
-
-        private void AddInputsFromDependencyGraphSpec(PackageRestoreInputs packageRestoreInputs, DependencyGraphSpec dgFileOutput)
-        {
-            packageRestoreInputs.ProjectReferenceLookup = dgFileOutput;
-
-            // Get top level entries
-            var entryPointProjects = dgFileOutput
-                .Projects
-                .Where(project => dgFileOutput.Restore.Contains(project.RestoreMetadata.ProjectUniqueName, StringComparer.Ordinal))
-                .ToList();
-
-            // possible packages.config
-            // Compare paths case-insenstive here since we do not know how msbuild modified them
-            // find all projects that are not part of the v3 group
-            var v2RestoreProjects =
-                packageRestoreInputs.ProjectFiles
-                  .Where(path => !entryPointProjects.Any(project => path.Equals(project.RestoreMetadata.ProjectPath, StringComparison.OrdinalIgnoreCase)));
-
-            packageRestoreInputs.PackagesConfigFiles
-                .AddRange(v2RestoreProjects
-                .Select(GetPackagesConfigFile)
-                .Where(path => path != null));
-
-            // Filter down to just the requested projects in the file
-            // that support transitive references.
-            var v3RestoreProjects = dgFileOutput.Projects
-                .Where(project => (project.RestoreMetadata.ProjectStyle == ProjectStyle.PackageReference
-                    || project.RestoreMetadata.ProjectStyle == ProjectStyle.ProjectJson)
-                    && entryPointProjects.Contains(project));
-
-            packageRestoreInputs.RestoreV3Context.Inputs.AddRange(v3RestoreProjects
-                .Select(project => project.RestoreMetadata.ProjectPath));
         }
 
         private string GetPackagesConfigFile(string projectFilePath)
@@ -580,7 +467,7 @@ namespace NuGet.CommandLine
         /// <summary>
         ///  Create a dg v2 file using msbuild.
         /// </summary>
-        private async Task<DependencyGraphSpec> GetDependencyGraphSpecAsync(string[] projectsWithPotentialP2PReferences)
+        private async Task RunMSBuildRestoreAsync(string[] projectsWithPotentialP2PReferences)
         {
             int scaleTimeout;
 
@@ -597,7 +484,7 @@ namespace NuGet.CommandLine
             Console.LogVerbose($"MSBuild P2P timeout [ms]: {scaleTimeout}");
 
             // Call MSBuild to resolve P2P references.
-            return await MsBuildUtility.GetProjectReferencesAsync(
+            await MsBuildUtility.GetProjectReferencesAsync(
                 _msbuildDirectory.Value,
                 projectsWithPotentialP2PReferences,
                 scaleTimeout,
@@ -622,10 +509,6 @@ namespace NuGet.CommandLine
             else if (projectFileName.EndsWith("proj", StringComparison.OrdinalIgnoreCase))
             {
                 packageRestoreInputs.ProjectFiles.Add(projectFilePath);
-            }
-            else if (projectFileName.EndsWith(".dg", StringComparison.OrdinalIgnoreCase))
-            {
-                packageRestoreInputs.RestoreV3Context.Inputs.Add(projectFilePath);
             }
             else if (projectFileName.EndsWith(".sln", StringComparison.OrdinalIgnoreCase))
             {
@@ -825,20 +708,11 @@ namespace NuGet.CommandLine
 
         private class PackageRestoreInputs
         {
-            public PackageRestoreInputs()
-            {
-                ProjectReferenceLookup = new DependencyGraphSpec();
-            }
-
             public bool RestoringWithSolutionFile => !string.IsNullOrEmpty(DirectoryOfSolutionFile);
 
             public string DirectoryOfSolutionFile { get; set; }
 
             public List<string> PackagesConfigFiles { get; } = new List<string>();
-
-            public DependencyGraphSpec ProjectReferenceLookup { get; set; }
-
-            public RestoreArgs RestoreV3Context { get; set; } = new RestoreArgs();
 
             /// <summary>
             /// Project files, type to be determined.
