@@ -57,6 +57,11 @@ namespace NuGet.Build
         {
             if (DisplayMessage(message.Level))
             {
+                if (RuntimeEnvironmentHelper.IsMono)
+                {
+                    LogForMono(message);
+                    return;
+                }
 
                 var logMessage = message as IRestoreLogMessage;
 
@@ -99,6 +104,40 @@ namespace NuGet.Build
                         break;
                 }
             }
+        }
+
+        /// <summary>
+        /// Log using basic methods to avoid missing methods on mono.
+        /// </summary>
+        private void LogForMono(ILogMessage message)
+        {
+            switch (message.Level)
+            {
+                case LogLevel.Error:
+                    _taskLogging.LogError(message.Message);
+                    break;
+
+                case LogLevel.Warning:
+                    _taskLogging.LogWarning(message.Message);
+                    break;
+
+                case LogLevel.Minimal:
+                    _taskLogging.LogMessage(MessageImportance.High, message.Message);
+                    break;
+
+                case LogLevel.Information:
+                    _taskLogging.LogMessage(MessageImportance.Normal, message.Message);
+                    break;
+
+                case LogLevel.Debug:
+                case LogLevel.Verbose:
+                default:
+                    // Default to LogLevel.Debug and low importance
+                    _taskLogging.LogMessage(MessageImportance.Low, message.Message);
+                    break;
+            }
+
+            return;
         }
 
         private void LogMessage(IRestoreLogMessage logMessage, 
