@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Xunit;
+using FluentAssertions;
 
 namespace NuGet.Build.Tasks.Test
 {
@@ -25,6 +26,31 @@ namespace NuGet.Build.Tasks.Test
             }
         }
 
+        [Fact]
+        public void GetRestoreSettingsTask_GetValueGetFirstValue()
+        {
+            RestoreSettingsUtils.GetValue(
+                () => "a",
+                () => "b",
+                () => null).Should().Be("a");
+        }
+
+        [Fact]
+        public void GetRestoreSettingsTask_GetValueGetLastValue()
+        {
+            RestoreSettingsUtils.GetValue(
+                () => null,
+                () => null,
+                () => new string[0]).ShouldBeEquivalentTo(new string[0]);
+        }
+
+        [Fact]
+        public void GetRestoreSettingsTask_GetValueAllNull()
+        {
+            RestoreSettingsUtils.GetValue<string[]>(
+                () => null,
+                () => null).Should().BeNull();
+        }
 
         [Fact]
         public void TestSolutionSettings()

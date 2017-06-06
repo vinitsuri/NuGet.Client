@@ -785,4 +785,38 @@ Copyright (c) .NET Foundation. All rights reserved.
           ItemName="_RestoreProjectPathItems" />
     </RemoveDuplicates>
   </Target>
+
+  <!--
+    ============================================================
+    _GetRestoreSettingsOverrides
+    Get global property overrides that should be resolved
+    against the current working directory instead of the project.
+    ============================================================
+  -->
+  <Target Name="_GetRestoreSettingsOverrides"
+          Returns="@(_RestoreProjectPathItems)">
+
+    <!-- Walk projects -->
+    <MsBuild
+        Projects="@(FilteredRestoreGraphProjectInputItems)"
+        Targets="_GenerateRestoreProjectPathWalk"
+        ContinueOnError="$(RestoreContinueOnError)"
+        Properties="%(_MSBuildProjectReferenceExistent.SetConfiguration);
+                    %(_MSBuildProjectReferenceExistent.SetPlatform);
+                    $(_GenerateRestoreGraphProjectEntryInputProperties)"
+        RemoveProperties="%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove)">
+
+      <Output
+          TaskParameter="TargetOutputs"
+          ItemName="_RestoreProjectPathItemsOutputs" />
+    </MsBuild>
+
+    <!-- Remove duplicates -->
+    <RemoveDuplicates
+      Inputs="@(_RestoreProjectPathItemsOutputs)">
+      <Output
+          TaskParameter="Filtered"
+          ItemName="_RestoreProjectPathItems" />
+    </RemoveDuplicates>
+  </Target>
 </Project>
