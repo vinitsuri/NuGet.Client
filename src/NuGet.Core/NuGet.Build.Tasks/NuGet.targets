@@ -437,7 +437,8 @@ Copyright (c) .NET Foundation. All rights reserved.
      RestoreAdditionalProjectSources="$(RestoreAdditionalProjectSources)"
      RestorePackagesPathOverride="$(_RestorePackagesPathOverride)"
      RestoreSourcesOverride="$(_RestoreSourcesOverride)"
-     RestoreFallbackFoldersOverride="$(_RestoreFallbackFoldersOverride)">
+     RestoreFallbackFoldersOverride="$(_RestoreFallbackFoldersOverride)"
+     MSBuildStartupDirectory="$(MSBuildStartupDirectory)">
       <Output
         TaskParameter="OutputSources"
         PropertyName="_OutputSources" />

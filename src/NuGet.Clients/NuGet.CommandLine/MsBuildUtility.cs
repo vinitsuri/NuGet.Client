@@ -248,7 +248,8 @@ namespace NuGet.CommandLine
                     FileName = msbuildPath,
                     Arguments = argumentBuilder.ToString(),
                     RedirectStandardError = true,
-                    RedirectStandardOutput = true
+                    RedirectStandardOutput = true,
+                    WorkingDirectory = Directory.GetCurrentDirectory()
                 };
 
                 console.LogDebug($"{processStartInfo.FileName} {processStartInfo.Arguments}");

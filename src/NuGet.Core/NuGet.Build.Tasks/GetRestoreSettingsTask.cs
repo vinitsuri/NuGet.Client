@@ -51,6 +51,11 @@ namespace NuGet.Build.Tasks
         public string[] RestoreFallbackFoldersOverride { get; set; }
 
         /// <summary>
+        /// Original working directory
+        /// </summary>
+        public string MSBuildStartupDirectory { get; set; }
+
+        /// <summary>
         /// Output items
         /// </summary>
         [Output]
@@ -101,23 +106,19 @@ namespace NuGet.Build.Tasks
                     return false;
                 }
 
-                // Non-project property paths are resolved against the working directory.
-                // These are usually passed in from the command line.
-                var workingDirectory = new Lazy<string>(() => Directory.GetCurrentDirectory());
-
                 // Settings
                 var settings = RestoreSettingsUtils.ReadSettings(RestoreSolutionDirectory, Path.GetDirectoryName(ProjectUniqueName), RestoreConfigFile, _machineWideSettings);
                 OutputConfigFilePaths = SettingsUtility.GetConfigFilePaths(settings).ToArray();
 
                 // PackagesPath
                 OutputPackagesPath = RestoreSettingsUtils.GetValue(
-                    () => string.IsNullOrEmpty(RestorePackagesPathOverride) ? null : UriUtility.GetAbsolutePath(workingDirectory.Value, RestorePackagesPathOverride),
+                    () => string.IsNullOrEmpty(RestorePackagesPathOverride) ? null : UriUtility.GetAbsolutePath(MSBuildStartupDirectory, RestorePackagesPathOverride),
                     () => string.IsNullOrEmpty(RestorePackagesPath) ? null : UriUtility.GetAbsolutePathFromFile(ProjectUniqueName, RestorePackagesPath),
                     () => SettingsUtility.GetGlobalPackagesFolder(settings));
 
                 // Sources
                 var currentSources = RestoreSettingsUtils.GetValue(
-                    () => RestoreSourcesOverride?.Select(e => UriUtility.GetAbsolutePath(workingDirectory.Value, e)).ToArray(),
+                    () => RestoreSourcesOverride?.Select(e => UriUtility.GetAbsolutePath(MSBuildStartupDirectory, e)).ToArray(),
                     () => MSBuildRestoreUtility.ContainsClearKeyword(RestoreSources) ? new string[0] : null,
                     () => RestoreSources?.Select(e => UriUtility.GetAbsolutePathFromFile(ProjectUniqueName, e)).ToArray(),
                     () => (new PackageSourceProvider(settings)).LoadPackageSources().Select(e => e.Source).ToArray());
@@ -129,7 +130,7 @@ namespace NuGet.Build.Tasks
 
                 // Fallback folders
                 var currentFallbackFolders = RestoreSettingsUtils.GetValue(
-                    () => RestoreFallbackFoldersOverride?.Select(e => UriUtility.GetAbsolutePath(workingDirectory.Value, e)).ToArray(),
+                    () => RestoreFallbackFoldersOverride?.Select(e => UriUtility.GetAbsolutePath(MSBuildStartupDirectory, e)).ToArray(),
                     () => MSBuildRestoreUtility.ContainsClearKeyword(RestoreFallbackFolders) ? new string[0] : null,
                     () => RestoreFallbackFolders?.Select(e => UriUtility.GetAbsolutePathFromFile(ProjectUniqueName, e)).ToArray(),
                     () => SettingsUtility.GetFallbackPackageFolders(settings).ToArray());
