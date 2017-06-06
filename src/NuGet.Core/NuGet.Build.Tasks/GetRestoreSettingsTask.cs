@@ -125,8 +125,9 @@ namespace NuGet.Build.Tasks
                     () => (new PackageSourceProvider(settings)).LoadPackageSources().Select(e => e.Source).ToArray());
 
                 // Append additional sources
+                // Escape strings to avoid xplat path issues with msbuild.
                 OutputSources = AppendItems(currentSources, RestoreAdditionalProjectSources)
-                    .Select(EscapeSlashes)
+                    .Select(MSBuildStringUtility.EscapeForwardSlashes)
                     .ToArray();
 
                 // Fallback folders
@@ -166,11 +167,6 @@ namespace NuGet.Build.Tasks
             var additionalAbsolute = additional.Select(e => UriUtility.GetAbsolutePathFromFile(ProjectUniqueName, e));
 
             return current.Concat(additionalAbsolute).ToArray();
-        }
-
-        private static string EscapeSlashes(string s)
-        {
-            return s?.Replace("/", "%2F");
         }
     }
 }
