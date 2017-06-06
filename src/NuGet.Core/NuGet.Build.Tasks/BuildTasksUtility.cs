@@ -22,7 +22,9 @@ namespace NuGet.Build.Tasks
 
         private static void LogTaskParam(Common.ILogger log, string direction, string name, params string[] values)
         {
-            log.Log(Common.LogLevel.Debug, $"({direction}) {name} '{string.Join(";", values.Select(s => s))}'");
+            var stringValues = values?.Select(s => s) ?? Enumerable.Empty<string>();
+
+            log.Log(Common.LogLevel.Debug, $"({direction}) {name} '{string.Join(";", stringValues)}'");
         }
 
         /// <summary>

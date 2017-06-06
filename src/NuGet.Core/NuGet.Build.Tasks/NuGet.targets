@@ -101,10 +101,7 @@ Copyright (c) .NET Foundation. All rights reserved.
     <!-- Call restore -->
     <RestoreTask
       RestoreGraphItems="@(_RestoreGraphEntryFiltered)"
-      RestoreSources="$(RestoreSources)"
-      RestorePackagesPath="$(RestorePackagesPath)"
       RestoreDisableParallel="$(RestoreDisableParallel)"
-      RestoreConfigFile="$(RestoreConfigFile)"
       RestoreNoCache="$(RestoreNoCache)"
       RestoreIgnoreFailedSources="$(RestoreIgnoreFailedSources)"
       RestoreRecursive="$(RestoreRecursive)"
