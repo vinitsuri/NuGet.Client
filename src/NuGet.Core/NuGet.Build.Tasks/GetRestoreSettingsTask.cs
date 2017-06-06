@@ -126,7 +126,7 @@ namespace NuGet.Build.Tasks
 
                 // Append additional sources
                 OutputSources = AppendItems(currentSources, RestoreAdditionalProjectSources)
-                    .OrderBy(s => s, new SourceTypeComparer())
+                    .Select(EscapeSlashes)
                     .ToArray();
 
                 // Fallback folders
@@ -166,6 +166,11 @@ namespace NuGet.Build.Tasks
             var additionalAbsolute = additional.Select(e => UriUtility.GetAbsolutePathFromFile(ProjectUniqueName, e));
 
             return current.Concat(additionalAbsolute).ToArray();
+        }
+
+        private static string EscapeSlashes(string s)
+        {
+            return s?.Replace("/", "%2F");
         }
     }
 }
