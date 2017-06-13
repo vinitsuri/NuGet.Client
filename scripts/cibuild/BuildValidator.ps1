@@ -26,7 +26,7 @@ if ($BuildRTM -eq 'false')
 {    
     $NuGetClientRoot = $env:BUILD_REPOSITORY_LOCALPATH
     $LocValidator = [System.IO.Path]::Combine($NuGetClientRoot, 'packages', 'NuGetValidator.Localization.1.2.0', 'tools', 'NuGetValidator.Localization.exe')
-    $VsixLocation = [System.IO.Path]::Combine($BuildOutputTargetPath, 'artifacts', 'VS15', 'Insertable', 'NuGet.Tools.vsix' ) 
+    $VsixLocation = [System.IO.Path]::Combine($BuildOutputTargetPath, 'artifacts', 'VS15', 'NuGet.Tools.vsix' ) 
     $VsixExtractLocation = Join-Path $env:SYSTEM_DEFAULTWORKINGDIRECTORY "extractedVsix"
     $LogOutputDir = Join-Path $BuildOutputTargetPath "LocalizationValidation"
     $LocalizationRepository = [System.IO.Path]::Combine($NuGetClientRoot, 'submodules', 'NuGet.Build.Localization', 'localize', 'comments', '15')

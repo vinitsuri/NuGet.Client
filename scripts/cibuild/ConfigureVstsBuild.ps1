@@ -180,5 +180,4 @@ else
         exit 1
     }
     Update-VsixVersion -manifestName source.extension.vs15.vsixmanifest -ReleaseProductVersion $productVersion -buildNumber $newBuildCounter
-    Update-VsixVersion -manifestName source.extension.vs15.insertable.vsixmanifest -ReleaseProductVersion $productVersion -buildNumber $newBuildCounter
 }

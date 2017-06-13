@@ -8,11 +8,11 @@
         <FinalizeSkipLayout>true</FinalizeSkipLayout>
         <BuildNumber>$(SemanticVersion).$(BuildNumber)</BuildNumber>
         <TargetName>$(MSBuildProjectName)</TargetName>
-        <OutputPath>$(VsixPublishDestination)Insertable</OutputPath>
+        <OutputPath>$(VsixPublishDestination)</OutputPath>
     </PropertyGroup>
     
     <ItemGroup>
-        <MergeManifest Include="$(VsixPublishDestination)Insertable\Microsoft.VisualStudio.NuGet.Core.json" />
+        <MergeManifest Include="$(VsixPublishDestination)Microsoft.VisualStudio.NuGet.Core.json" />
     </ItemGroup>
 
     <Import Project="$(SolutionPackagesFolder)MicroBuild.Core.0.2.0\build\MicroBuild.Core.targets"/>
