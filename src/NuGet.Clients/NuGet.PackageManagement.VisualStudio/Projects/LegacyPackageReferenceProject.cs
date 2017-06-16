@@ -142,7 +142,7 @@ namespace NuGet.PackageManagement.VisualStudio
                     versionRange: range,
                     typeConstraint: LibraryDependencyTarget.Package)
             };
-
+            // NK - This is where we add the top level dependency.
             await ProjectServices.References.AddOrUpdatePackageReferenceAsync(dependency, token);
 
             return true;
@@ -312,7 +312,7 @@ namespace NuGet.PackageManagement.VisualStudio
             var projectTfi = new TargetFrameworkInformation
             {
                 FrameworkName = targetFramework,
-                Dependencies = packageReferences,
+               // Dependencies = packageReferences,
             };
 
             // Apply fallback settings
@@ -334,6 +334,7 @@ namespace NuGet.PackageManagement.VisualStudio
                 Owners = new string[] { },
                 Tags = new string[] { },
                 ContentFiles = new string[] { },
+                // TODO NK - What happens if I remove this? There is no point is setting the dependencies in addition to the framework
                 Dependencies = packageReferences,
                 FilePath = _projectFullPath,
                 RuntimeGraph = runtimeGraph,
