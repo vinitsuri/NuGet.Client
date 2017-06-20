@@ -19,6 +19,7 @@ using NuGet.Configuration;
 using NuGet.PackageManagement.Telemetry;
 using NuGet.ProjectManagement;
 using NuGet.ProjectManagement.Projects;
+using NuGet.ProjectModel;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using NuGet.VisualStudio;
@@ -228,6 +229,33 @@ namespace NuGet.PackageManagement.VisualStudio
                 .ToList();
 
             return projects;
+        }
+
+        public bool IsAllProjectsNominated()
+        {
+#if VS14
+            // for VS14, always return true since nominations don't apply there.
+            return true;
+#else
+            var netCoreProjects = GetNuGetProjects().OfType<NetCorePackageReferenceProject>().ToList();
+
+            // count for nominated projects so far
+            var nominatedProjects = 0;
+
+            foreach (var project in netCoreProjects)
+            {
+                // check if this .Net core project is nominated or not, and accordingly increase counter.
+                DependencyGraphSpec projectRestoreInfo;
+                if (_projectSystemCache.TryGetProjectRestoreInfo(project.MSBuildProjectPath, out projectRestoreInfo) &&
+                    projectRestoreInfo != null)
+                {
+                    nominatedProjects++;
+                }
+            }
+
+            // return true if all the net core projects have been nominated.
+            return netCoreProjects.Count == nominatedProjects;
+#endif
         }
 
         /// <summary>

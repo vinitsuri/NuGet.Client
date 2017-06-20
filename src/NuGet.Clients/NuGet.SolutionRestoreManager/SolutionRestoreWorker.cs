@@ -29,6 +29,8 @@ namespace NuGet.SolutionRestoreManager
         private const int IdleTimeoutMs = 400;
         private const int RequestQueueLimit = 150;
         private const int PromoteAttemptsLimit = 150;
+        private const int DelayAutoRestoreTime = 1500;
+        private const int DelayAutoRestoreRetries = 5;
 
         private readonly IServiceProvider _serviceProvider;
         private readonly Lazy<IVsSolutionManager> _solutionManager;
@@ -339,13 +341,36 @@ namespace NuGet.SolutionRestoreManager
 
                         token.ThrowIfCancellationRequested();
 
+                        var retries = 0;
+
                         // Drains the queue
                         while (!_pendingRequests.Value.IsCompleted
                             && !token.IsCancellationRequested)
                         {
+                            var isAllProjectsNominated = true;
                             SolutionRestoreRequest next;
+
                             if (!_pendingRequests.Value.TryTake(out next, IdleTimeoutMs, token))
                             {
+                                // check if there are pending nominations
+                                isAllProjectsNominated = _solutionManager.Value.IsAllProjectsNominated();
+                                if (isAllProjectsNominated)
+                                {
+                                    // if we've got all the nominations then continue with the auto restore
+                                    break;
+                                }
+                            }
+
+                            // if we're still expecting some nominations and also haven't reached our max timeout
+                            // then delay it for 1500 msec and try again.
+                            if (!isAllProjectsNominated && retries < DelayAutoRestoreRetries)
+                            {
+                                retries++;
+                                await Task.Delay(DelayAutoRestoreTime);
+                            }
+                            else
+                            {
+                                // we're still missing some nominations but don't delay it indefinitely and let auto restore fail.
                                 break;
                             }
 
@@ -412,7 +437,7 @@ namespace NuGet.SolutionRestoreManager
         {
             var pendingTask = restoreOperation.Task;
 
-            int attempt = 0;
+            var attempt = 0;
             for (var retry = true;
                 retry && !token.IsCancellationRequested && attempt != PromoteAttemptsLimit;
                 attempt++)
