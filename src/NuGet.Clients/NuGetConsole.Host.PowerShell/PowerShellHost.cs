@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -84,8 +84,7 @@ namespace NuGetConsole.Host.PowerShell.Implementation
         /// hash mentioned here cannot collide with a real hash.
         /// </summary>
         private static readonly SolutionRestoredEventArgs InitialRestore = new SolutionRestoredEventArgs(
-            isSuccess: true,
-            solutionSpecHash: "initial");
+            isSuccess: true);
 
         /// <summary>
         /// This field tracks information about the latest restore.
@@ -392,14 +391,6 @@ namespace NuGetConsole.Host.PowerShell.Implementation
 
                 var latestRestore = _latestRestore;
                 var latestSolutionDirectory = _solutionManager.SolutionDirectory;
-                if (ShouldNoOpDueToRestore(latestRestore) &&
-                    ShouldNoOpDueToSolutionDirectory(latestSolutionDirectory))
-                {
-                    _currentRestore = latestRestore;
-                    _currentSolutionDirectory = latestSolutionDirectory;
-
-                    return;
-                }
 
                 // invoke init.ps1 files in the order of package dependency.
                 // if A -> B, we invoke B's init.ps1 before A's.
@@ -758,14 +749,6 @@ namespace NuGetConsole.Host.PowerShell.Implementation
             _latestRestore = args;
         }
 
-        private bool ShouldNoOpDueToRestore(SolutionRestoredEventArgs latestRestore)
-        {
-            return latestRestore != null &&
-                   _currentRestore != null &&
-                   latestRestore.SolutionSpecHash == _currentRestore.SolutionSpecHash &&
-                   latestRestore.IsSuccess == _currentRestore.IsSuccess;
-        }
-
         private bool ShouldNoOpDueToSolutionDirectory(string latestSolutionDirectory)
         {
             return StringComparer.OrdinalIgnoreCase.Equals(
@@ -901,13 +884,13 @@ namespace NuGetConsole.Host.PowerShell.Implementation
             SetPropertyValueOnHost(CancellationTokenKey, _token);
             var simpleExpansion = await Task.Run(() =>
                 {
-                    PSObject expansion = Runspace.Invoke(
+                    var expansion = Runspace.Invoke(
                         "$input|%{$__pc_args=$_}; _TabExpansionPath $__pc_args; Remove-Variable __pc_args -Scope 0",
                         new object[] { line },
                         outputResults: false).FirstOrDefault();
                     if (expansion != null)
                     {
-                        int replaceStart = (int)expansion.Properties["ReplaceStart"].Value;
+                        var replaceStart = (int)expansion.Properties["ReplaceStart"].Value;
                         IList<string> paths = ((IEnumerable<object>)expansion.Properties["Paths"].Value).Select(o => o.ToString()).ToList();
                         return new SimpleExpansion(replaceStart, line.Length - replaceStart, paths);
                     }
