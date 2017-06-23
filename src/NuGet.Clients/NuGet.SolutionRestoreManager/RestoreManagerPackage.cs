@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -81,6 +81,7 @@ namespace NuGet.SolutionRestoreManager
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 var dte = (EnvDTE.DTE)await GetServiceAsync(typeof(SDTE));
                 _buildEvents = dte.Events.BuildEvents;
+                
                 _buildEvents.OnBuildBegin += BuildEvents_OnBuildBegin;
 
                 UserAgent.SetUserAgentString(
@@ -114,7 +115,7 @@ namespace NuGet.SolutionRestoreManager
             {
                 // Clear the project.json restore cache on clean to ensure that the next build restores again
                 SolutionRestoreWorker.CleanCache();
-
+                SolutionManager.Clean();
                 return;
             }
 

@@ -37,14 +37,18 @@ namespace NuGet.Commands
                 || request.ProjectStyle == ProjectStyle.PackageReference
                || request.ProjectStyle == ProjectStyle.Standalone)
             {
-                var projFileName = Path.GetFileName(request.Project.RestoreMetadata.ProjectPath);
                 var cacheRoot = request.BaseIntermediateOutputPath ?? request.RestoreOutputPath;
-                cacheFilePath = request.Project.RestoreMetadata.CacheFilePath = Path.Combine(cacheRoot, $"{projFileName}.nuget.cache");
+                cacheFilePath = request.Project.RestoreMetadata.CacheFilePath = GetProjectCacheFile(request.Project.RestoreMetadata.ProjectPath, cacheRoot);
             }
 
             return cacheFilePath;
         }
 
+        private static string GetProjectCacheFile(string projectPath, string cacheRoot)
+        {
+            var projFileName = Path.GetFileName(projectPath);
+            return Path.Combine(cacheRoot, $"{projFileName}.nuget.cache");
+        }
 
         internal static string GetToolCacheFilePath(RestoreRequest request, LockFile lockFile)
         {

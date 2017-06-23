@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -74,6 +74,16 @@ namespace NuGet.PackageManagement.VisualStudio
         public override async Task<string> GetAssetsFilePathAsync()
         {
             return await GetAssetsFilePathAsync(shouldThrow: true);
+        }
+
+        public override async Task<string> GetCacheFilePathAsync()
+        {
+            return await GetAssetsFilePathAsync(shouldThrow: true);
+        }
+
+        public async Task<string> GetCacheFilePathAsync(bool shouldThrow)
+        {
+
         }
 
         public override async Task<string> GetAssetsFilePathOrNullAsync()

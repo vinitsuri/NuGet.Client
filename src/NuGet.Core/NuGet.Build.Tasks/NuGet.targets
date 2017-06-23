@@ -469,6 +469,11 @@ Copyright (c) .NET Foundation. All rights reserved.
       <RestoreOutputPath Condition=" '$(RestoreOutputPath)' == '' " >$(BaseIntermediateOutputPath)</RestoreOutputPath>
     </PropertyGroup>
 
+    <ItemGroup> 
+      <FileWrites Include="$(RestoreOutputPath)\*.nuget.cache"/>
+    </ItemGroup>
+
+    <!-- Projects in VS-->
     <ConvertToAbsolutePath Paths="$(RestoreOutputPath)" Condition=" '$(RestoreProjectStyle)' == 'PackageReference' OR '$(RestoreProjectStyle)' == 'ProjectJson'">
       <Output TaskParameter="AbsolutePaths" PropertyName="RestoreOutputAbsolutePath" />
     </ConvertToAbsolutePath>
