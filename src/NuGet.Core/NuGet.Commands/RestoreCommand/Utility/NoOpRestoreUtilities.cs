@@ -36,13 +36,13 @@ namespace NuGet.Commands
                 || request.ProjectStyle == ProjectStyle.Standalone)
             {
                 var cacheRoot = request.BaseIntermediateOutputPath ?? request.RestoreOutputPath;
-                return request.Project.RestoreMetadata.CacheFilePath = GetProjectCacheFile(request.Project.RestoreMetadata.ProjectPath, cacheRoot);
+                return request.Project.RestoreMetadata.CacheFilePath = GetProjectCacheFile(cacheRoot, request.Project.RestoreMetadata.ProjectPath);
             }
 
             return null;
         }
 
-        public static string GetProjectCacheFile(string projectPath, string cacheRoot)
+        public static string GetProjectCacheFile(string cacheRoot, string projectPath)
         {
             var projFileName = Path.GetFileName(projectPath);
             return Path.Combine(cacheRoot, $"{projFileName}.nuget.cache");

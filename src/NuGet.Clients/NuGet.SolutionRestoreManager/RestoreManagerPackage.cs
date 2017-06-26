@@ -80,8 +80,7 @@ namespace NuGet.SolutionRestoreManager
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 var dte = (EnvDTE.DTE)await GetServiceAsync(typeof(SDTE));
-                _buildEvents = dte.Events.BuildEvents;
-                
+                _buildEvents = dte.Events.BuildEvents;                
                 _buildEvents.OnBuildBegin += BuildEvents_OnBuildBegin;
 
                 UserAgent.SetUserAgentString(

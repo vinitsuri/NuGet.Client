@@ -151,7 +151,7 @@ namespace NuGet.ProjectManagement.Projects
             return packages;
         }
 
-        protected virtual async Task<string> GetBaseIntermediatePathAsync()
+        protected virtual Task<string> GetBaseIntermediatePathAsync()
         {
             // Extending class will implement the functionality.
             return null;
@@ -177,6 +177,7 @@ namespace NuGet.ProjectManagement.Projects
                 metadata.ProjectJsonPath = packageSpec.FilePath;
                 metadata.ProjectName = packageSpec.Name;
                 metadata.ProjectUniqueName = MSBuildProjectPath;
+                metadata.CacheFilePath = await GetCacheFilePathAsync();
 
                 // Reload the target framework from csproj and update the target framework in packageSpec for restore
                 await UpdateInternalTargetFrameworkAsync();
@@ -354,9 +355,10 @@ namespace NuGet.ProjectManagement.Projects
             return InternalMetadata.TryGetValue(NuGetProjectMetadataKeys.TargetFramework, out internalTargetFramework);
         }
 
-        public override async Task<string> GetCacheFilePathAsync()
+        // Overriding class wil implement the method
+        public override Task<string> GetCacheFilePathAsync()
         {
-            return NoOpRestoreUtilities.GetProjectCacheFile(MSBuildProjectPath, await GetBaseIntermediatePathAsync());
+            return null;
         }
     }
 }

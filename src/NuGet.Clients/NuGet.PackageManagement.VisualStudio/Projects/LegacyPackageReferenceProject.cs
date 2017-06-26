@@ -78,13 +78,13 @@ namespace NuGet.PackageManagement.VisualStudio
 
         public override async Task<string> GetCacheFilePathAsync()
         {
-            return await GetAssetsFilePathAsync(shouldThrow: true);
+            return await GetCacheFilePathAsync(shouldThrow: true);
         }
 
         public async Task<string> GetCacheFilePathAsync(bool shouldThrow)
         {
             await _threadingService.JoinableTaskFactory.SwitchToMainThreadAsync();
-            return NoOpRestoreUtilities.GetProjectCacheFile(GetBaseIntermediatePath(shouldThrow), _projectFullPath);
+            return NoOpRestoreUtilities.GetProjectCacheFile(cacheRoot: GetBaseIntermediatePath(shouldThrow), projectPath: _projectFullPath);
         }
 
         public override async Task<string> GetAssetsFilePathOrNullAsync()

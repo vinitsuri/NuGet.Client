@@ -154,7 +154,7 @@ namespace NuGet.PackageManagement.VisualStudio
                 project.RestoreMetadata.Sources = GetSources(settings, project);
                 project.RestoreMetadata.FallbackFolders = GetFallbackFolders(settings, project);
                 project.RestoreMetadata.ConfigFilePaths = GetConfigFilePaths(settings);
-                project.RestoreMetadata.CacheFilePath = GetProjectCacheFile(project);
+                project.RestoreMetadata.CacheFilePath = GetCacheFilePathAsync(project);
                 projects.Add(project);
             }
 
@@ -362,7 +362,15 @@ namespace NuGet.PackageManagement.VisualStudio
             return true;
         }
 
-        public Task<string> GetCacheFilePathAsync(bool shouldThrow)
+        public override Task<string> GetCacheFilePathAsync()
+        {
+            return GetCacheFilePathAsync(shouldThrow: true);
+        }
+
+        /// <summary>
+        /// Gets the cache file path by fetching the package spec
+        /// </summary>
+        private Task<string> GetCacheFilePathAsync(bool shouldThrow)
         {
             var spec = GetPackageSpec();
             if (spec == null) {
@@ -377,22 +385,15 @@ namespace NuGet.PackageManagement.VisualStudio
                 }
             }
 
-            return Task.FromResult(GetProjectCacheFile(spec));
+            return Task.FromResult(GetCacheFilePathAsync(spec));
         }
 
-        private string GetProjectCacheFile(PackageSpec spec)
+        /// <summary>
+        /// Returns the cache file path based on the current packagespec
+        /// </summary>
+        private string GetCacheFilePathAsync(PackageSpec spec)
         {
-            return GetProjectCacheFile(spec.RestoreMetadata.OutputPath, spec.RestoreMetadata.ProjectPath);
-        }
-
-        private string GetProjectCacheFile(string outputPath, string projectFullPath)
-        {
-            return NoOpRestoreUtilities.GetProjectCacheFile(outputPath, projectFullPath);
-
-        }
-        public override Task<string> GetCacheFilePathAsync()
-        {
-            return GetCacheFilePathAsync(shouldThrow: true);
+            return NoOpRestoreUtilities.GetProjectCacheFile(cacheRoot : spec.RestoreMetadata.OutputPath, projectPath: spec.RestoreMetadata.ProjectPath);
         }
 
         #endregion

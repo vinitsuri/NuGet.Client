@@ -959,22 +959,16 @@ namespace NuGet.PackageManagement.VisualStudio
             return _projectSystemCache.GetVsProjectAdapters();
         }
 
-        public async Task Clean()
+        public void Clean()
         {
             EnsureInitialize();
 
-            IList<string> cacheFiles = new List<string>();
-            foreach( var project in GetNuGetProjects().OfType<BuildIntegratedNuGetProject>())
+            ThreadHelper.JoinableTaskFactory.Run(async () =>
             {
-                cacheFiles.Add(await project.GetCacheFilePathAsync());
-            }
-            foreach(var cacheFile in cacheFiles)
-            {
-                FileUtility.Delete(cacheFile);
-            }
-            
-
+                await Task.WhenAll(GetNuGetProjects().OfType<BuildIntegratedNuGetProject>().Select(async e =>  FileUtility.Delete(await e.GetCacheFilePathAsync())));
+            });
         }
+
         public async Task<NuGetProject> UpgradeProjectToPackageReferenceAsync(NuGetProject oldProject)
         {
 #if VS14
