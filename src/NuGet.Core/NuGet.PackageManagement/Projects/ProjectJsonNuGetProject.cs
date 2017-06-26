@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
+using NuGet.Commands;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Frameworks;
@@ -351,6 +352,11 @@ namespace NuGet.ProjectManagement.Projects
         private bool TryGetInternalFramework(out object internalTargetFramework)
         {
             return InternalMetadata.TryGetValue(NuGetProjectMetadataKeys.TargetFramework, out internalTargetFramework);
+        }
+
+        public override async Task<string> GetCacheFilePathAsync()
+        {
+            return NoOpRestoreUtilities.GetProjectCacheFile(MSBuildProjectPath, await GetBaseIntermediatePathAsync());
         }
     }
 }

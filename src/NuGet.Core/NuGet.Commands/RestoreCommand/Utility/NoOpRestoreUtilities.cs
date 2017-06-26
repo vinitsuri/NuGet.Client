@@ -19,7 +19,6 @@ namespace NuGet.Commands
 
         /// <summary>
         /// If the dependencyGraphSpec is not set, we cannot no-op on this project restore. 
-        /// No-Op restore is not supported for CLI Tools at this point
         /// </summary>
         internal static bool IsNoOpSupported(RestoreRequest request)
         {
@@ -31,20 +30,19 @@ namespace NuGet.Commands
         /// </summary>
         private static string GetBuildIntegratedProjectCacheFile(RestoreRequest request)
         {
-            string cacheFilePath = null;
 
             if (request.ProjectStyle == ProjectStyle.ProjectJson
                 || request.ProjectStyle == ProjectStyle.PackageReference
-               || request.ProjectStyle == ProjectStyle.Standalone)
+                || request.ProjectStyle == ProjectStyle.Standalone)
             {
                 var cacheRoot = request.BaseIntermediateOutputPath ?? request.RestoreOutputPath;
-                cacheFilePath = request.Project.RestoreMetadata.CacheFilePath = GetProjectCacheFile(request.Project.RestoreMetadata.ProjectPath, cacheRoot);
+                return request.Project.RestoreMetadata.CacheFilePath = GetProjectCacheFile(request.Project.RestoreMetadata.ProjectPath, cacheRoot);
             }
 
-            return cacheFilePath;
+            return null;
         }
 
-        private static string GetProjectCacheFile(string projectPath, string cacheRoot)
+        public static string GetProjectCacheFile(string projectPath, string cacheRoot)
         {
             var projFileName = Path.GetFileName(projectPath);
             return Path.Combine(cacheRoot, $"{projFileName}.nuget.cache");

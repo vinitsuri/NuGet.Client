@@ -1,4 +1,4 @@
-﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
@@ -154,6 +154,7 @@ namespace NuGet.PackageManagement.VisualStudio
                 project.RestoreMetadata.Sources = GetSources(settings, project);
                 project.RestoreMetadata.FallbackFolders = GetFallbackFolders(settings, project);
                 project.RestoreMetadata.ConfigFilePaths = GetConfigFilePaths(settings);
+                project.RestoreMetadata.CacheFilePath = GetProjectCacheFile(project);
                 projects.Add(project);
             }
 
@@ -359,6 +360,39 @@ namespace NuGet.PackageManagement.VisualStudio
             var configuredProject = await _unconfiguredProject.GetSuggestedConfiguredProjectAsync();
             await configuredProject?.Services.PackageReferences.RemoveAsync(packageIdentity.Id);
             return true;
+        }
+
+        public Task<string> GetCacheFilePathAsync(bool shouldThrow)
+        {
+            var spec = GetPackageSpec();
+            if (spec == null) {
+                if (shouldThrow)
+                {
+                    throw new InvalidOperationException(
+                        string.Format(Strings.ProjectNotLoaded_RestoreFailed, ProjectName));
+                }
+                else
+                {
+                    return Task.FromResult<string>(null);
+                }
+            }
+
+            return Task.FromResult(GetProjectCacheFile(spec));
+        }
+
+        private string GetProjectCacheFile(PackageSpec spec)
+        {
+            return GetProjectCacheFile(spec.RestoreMetadata.OutputPath, spec.RestoreMetadata.ProjectPath);
+        }
+
+        private string GetProjectCacheFile(string outputPath, string projectFullPath)
+        {
+            return NoOpRestoreUtilities.GetProjectCacheFile(outputPath, projectFullPath);
+
+        }
+        public override Task<string> GetCacheFilePathAsync()
+        {
+            return GetCacheFilePathAsync(shouldThrow: true);
         }
 
         #endregion

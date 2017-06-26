@@ -15,6 +15,7 @@ using Microsoft;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.PackageManagement.Telemetry;
 using NuGet.ProjectManagement;
@@ -962,10 +963,17 @@ namespace NuGet.PackageManagement.VisualStudio
         {
             EnsureInitialize();
 
-            foreach (var project in GetNuGetProjects())
+            IList<string> cacheFiles = new List<string>();
+            foreach( var project in GetNuGetProjects().OfType<BuildIntegratedNuGetProject>())
             {
-                    
+                cacheFiles.Add(await project.GetCacheFilePathAsync());
             }
+            foreach(var cacheFile in cacheFiles)
+            {
+                FileUtility.Delete(cacheFile);
+            }
+            
+
         }
         public async Task<NuGetProject> UpgradeProjectToPackageReferenceAsync(NuGetProject oldProject)
         {

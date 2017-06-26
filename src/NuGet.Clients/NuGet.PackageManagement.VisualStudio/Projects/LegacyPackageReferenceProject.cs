@@ -83,7 +83,8 @@ namespace NuGet.PackageManagement.VisualStudio
 
         public async Task<string> GetCacheFilePathAsync(bool shouldThrow)
         {
-
+            await _threadingService.JoinableTaskFactory.SwitchToMainThreadAsync();
+            return NoOpRestoreUtilities.GetProjectCacheFile(GetBaseIntermediatePath(shouldThrow), _projectFullPath);
         }
 
         public override async Task<string> GetAssetsFilePathOrNullAsync()
@@ -365,6 +366,7 @@ namespace NuGet.PackageManagement.VisualStudio
                         }
                     },
                     SkipContentFileWrite = true,
+                    CacheFilePath = await GetCacheFilePathAsync(),
                     PackagesPath = GetPackagesPath(settings),
                     Sources = GetSources(settings),
                     FallbackFolders = GetFallbackFolders(settings),
