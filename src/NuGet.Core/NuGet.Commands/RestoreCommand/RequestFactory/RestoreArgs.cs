@@ -181,7 +181,7 @@ namespace NuGet.Commands
             request.MaxDegreeOfConcurrency =
                 DisableParallel ? 1 : RestoreRequest.DefaultDegreeOfConcurrency;
 
-            request.RequestedRuntimes.UnionWith(Runtimes);
+            request.RequestedRuntimes.UnionWith(Runtimes);R
             request.FallbackRuntimes.UnionWith(FallbackRuntimes);
 
             if (IsLowercaseGlobalPackagesFolder.HasValue)
