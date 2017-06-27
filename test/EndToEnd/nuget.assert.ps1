@@ -117,6 +117,28 @@ function Assert-ProjectJsonLockFilePackage {
     Assert-True $found "Package $Id $Version was not found in the lock file for $($Project.Name)"    
 }
 
+function Assert-ProjectJsonCacheFileExists {
+    param(
+        [parameter(Mandatory = $true)]
+        $Project
+    )
+
+    $cacheFile = Get-ProjectCacheFilePath $Project
+
+    Assert-PathExists $cacheFile
+}
+
+function Assert-ProjectJsonCacheFileNotExists {
+    param(
+        [parameter(Mandatory = $true)]
+        $Project
+    )
+
+    $cacheFile = Get-ProjectCacheFilePath $Project
+
+    Assert-PathNotExists $cacheFile
+}
+
 function Assert-ProjectJsonLockFilePackageNotFound {
     param(
         [parameter(Mandatory = $true)]
@@ -293,6 +315,20 @@ function Set-ProjectJsonLockFile {
     $lockFileFormat = New-Object 'NuGet.ProjectModel.LockFileFormat'
 
     return $lockFileFormat.Write($projectJsonLockFilePath, $LockFile)
+}
+
+function Get-ProjectCacheFilePath {
+    param(
+        [parameter(Mandatory = $true)]
+        $Project
+    )
+    
+    $dir = Split-Path -parent $Project.FullName
+    $projectFile = Split-Path -Leaf $Project.FullName
+
+    $projectJsonLockFilePath = Join-Path $dir "obj" $projectFile.nuget.cache"
+
+    return $projectJsonLockFilePath
 }
 
 function Get-ProjectJsonLockFilePath {

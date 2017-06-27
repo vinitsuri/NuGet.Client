@@ -13,6 +13,7 @@ using EnvDTE;
 using EnvDTE80;
 using Microsoft;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using NuGet.Common;
@@ -965,6 +966,9 @@ namespace NuGet.PackageManagement.VisualStudio
 
             ThreadHelper.JoinableTaskFactory.Run(async () =>
             {
+                // Go off the UI thread to perform non-UI operations
+                await TaskScheduler.Default;
+
                 await Task.WhenAll(GetNuGetProjects().OfType<BuildIntegratedNuGetProject>().Select(async e =>  FileUtility.Delete(await e.GetCacheFilePathAsync())));
             });
         }

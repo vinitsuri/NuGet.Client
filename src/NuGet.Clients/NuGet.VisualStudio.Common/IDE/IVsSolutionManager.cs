@@ -64,6 +64,10 @@ namespace NuGet.PackageManagement.VisualStudio
         /// <param name="project">Existing project to upgrade.</param>
         /// <returns>New project instance.</returns>
         Task<NuGetProject> UpgradeProjectToPackageReferenceAsync(NuGetProject project);
+
+        /// <summary>
+        /// Do NuGet related clean actions on every project
+        /// </summary>
         void Clean();
     }
 }

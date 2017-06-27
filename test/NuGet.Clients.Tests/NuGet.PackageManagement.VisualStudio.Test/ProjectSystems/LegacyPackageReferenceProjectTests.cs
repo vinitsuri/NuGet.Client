@@ -122,10 +122,10 @@ namespace NuGet.PackageManagement.VisualStudio.Test
                 await _threadingService.JoinableTaskFactory.SwitchToMainThreadAsync();
 
                 // Act
-                var assetsPath = await testProject.GetCacheFilePathAsync();
+                var cachePath = await testProject.GetCacheFilePathAsync();
 
                 // Assert
-                Assert.Equal(Path.Combine(testBaseIntermediateOutputPath, $"{testProj}.nuget.cache"), assetsPath);
+                Assert.Equal(Path.Combine(testBaseIntermediateOutputPath, $"{testProj}.nuget.cache"), cachePath);
 
                 // Verify
                 Mock.Get(projectAdapter)
