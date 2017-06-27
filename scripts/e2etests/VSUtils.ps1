@@ -1,4 +1,8 @@
-﻿function GetVSFolderPath
+$VSInstallerProcessName = "VSIXInstaller"
+
+. "$PSScriptRoot\Utils.ps1"
+
+function GetVSFolderPath
 {
     param(
         [Parameter(Mandatory=$true)]
@@ -22,12 +26,12 @@
         {
             $VSFolderPath = Join-Path $ProgramFilesPath $VS15PreviewRelativePath
         }
-        elseif (Test-Path (Join-Path $ProgramFilesPath $VS15StableRelativePath)) 
+        elseif (Test-Path (Join-Path $ProgramFilesPath $VS15StableRelativePath))
         {
             $VSFolderPath = Join-Path $ProgramFilesPath $VS15StableRelativePath
         }
-    } 
-    else 
+    }
+    else
     {
         $VSFolderPath = Join-Path $ProgramFilesPath ("Microsoft Visual Studio " + $VSVersion)
     }
@@ -51,8 +55,11 @@ function GetVSIDEFolderPath
 
 function KillRunningInstancesOfVS
 {
-    Write-Host 'Kill any running instances of devenv...'
-    (Get-Process 'devenv' -ErrorAction SilentlyContinue) | Kill -ErrorAction SilentlyContinue
+    $processName = 'devenv'
+    Write-Host "Kill any running instances of $processName..."
+    (Get-Process "$processName" -ErrorAction SilentlyContinue) | Kill -ErrorAction SilentlyContinue
+
+    WaitForProcessesExit -ProcessName "$processName" -TimeoutInSeconds 30
 }
 
 function LaunchVS
@@ -131,17 +138,16 @@ function GetVSIXInstallerPath
     )
 
     $VSIDEFolderPath = GetVSIDEFolderPath $VSVersion
-    $VSIXInstallerPath = Join-Path $VSIDEFolderPath "VSIXInstaller.exe"
+    $VSIXInstallerPath = Join-Path $VSIDEFolderPath "$VSInstallerProcessName.exe"
 
     return $VSIXInstallerPath
 }
 
 function GetDev15MEFCachePath
 {
-
     $cachePath = $env:localappdata
     @( "Microsoft", "VisualStudio", "15.*", "ComponentModelCache" ) | %{ $cachePath = Join-Path $cachePath $_ }
-    
+
     return $cachePath
 }
 
@@ -166,22 +172,21 @@ function UninstallVSIX
 
     if ($p.ExitCode -ne 0)
     {
-        if($p.ExitCode -eq 1002)
+        if ($p.ExitCode -eq 1002)
         {
-            Write-Host "VSIX already uninstalled. Moving on to installing the VSIX! Exit code: $($p.ExitCode)" 
+            Write-Host "VSIX already uninstalled. Moving on to installing the VSIX! Exit code: $($p.ExitCode)"
             return $true
         }
-        else 
+        else
         {
             Write-Error "Error uninstalling the VSIX! Exit code: $($p.ExitCode)"
             return $false
         }
-
     }
 
-    start-sleep -Seconds $VSIXInstallerWaitTimeInSecs
+    WaitForProcessExit -ProcessName $VSInstallerProcessName -TimeoutInSeconds $VSIXInstallerWaitTimeInSecs
     Write-Host "VSIX has been uninstalled successfully."
-    
+
     return $true
 }
 
@@ -205,7 +210,7 @@ function DowngradeVSIX
 
     if ($p.ExitCode -ne 0)
     {
-        if($p.ExitCode -eq 2001)
+        if ($p.ExitCode -eq 2001)
         {
             Write-Host "This VS2017 version does not support downgrade. Moving on to installing the VSIX! Exit code: $($p.ExitCode)" 
             return $true
@@ -217,9 +222,9 @@ function DowngradeVSIX
         }
     }
 
-    start-sleep -Seconds $VSIXInstallerWaitTimeInSecs
+    WaitForProcessExit -ProcessName $VSInstallerProcessName -TimeoutInSeconds $VSIXInstallerWaitTimeInSecs
     Write-Host "VSIX has been downgraded successfully."
-    
+
     return $true
 }
 
@@ -235,7 +240,7 @@ function InstallVSIX
         [Parameter(Mandatory=$true)]
         [int]$VSIXInstallerWaitTimeInSecs
     )
-    
+
     $VSIXInstallerPath = GetVSIXInstallerPath $VSVersion
 
     Write-Host "Installing VSIX from $vsixpath..."
@@ -248,7 +253,7 @@ function InstallVSIX
         return $false
     }
 
-    start-sleep -Seconds $VSIXInstallerWaitTimeInSecs
+    WaitForProcessExit -ProcessName $VSInstallerProcessName -TimeoutInSeconds $VSIXInstallerWaitTimeInSecs
     Write-Host "VSIX has been installed successfully."
 
     return $true
@@ -257,12 +262,9 @@ function InstallVSIX
 
 function ClearDev15MEFCache
 {
-    
     $dev15MEFCachePath = GetDev15MEFCachePath
 
     Write-Host "rm -r $dev15MEFCachePath..."
     rm -r $dev15MEFCachePath
-    
     Write-Host "Done clearing dev15 MEF cache..."
-
 }
